@@ -1,0 +1,755 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="XiaoMaDing">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="背景以前项目中遇到需要发送消息触发提醒时，都是直接调用消息中心、三方消息渠道的API，进行业务消息推送 但是最近开发的几个需求，都要求对不同角色、不同消息渠道，进行消息触达推送。如果继续采用之前的方式，会造成相似功能重复开发，且难以维护。           迭代改进：基于上述背景，决定使用设计模式进行抽象，使其达到可复用、可扩展、配置化。 期望达成效果：后续有类似需求时，只需开发少量代码(策略扩">
+<meta property="og:type" content="article">
+<meta property="og:title" content="项目实战：策略与责任链模式在项目中的应用">
+<meta property="og:url" content="https://xiao-mading.github.io/2023/02/08/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AD%96%E7%95%A5%E4%B8%8E%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F%E5%9C%A8%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/index.html">
+<meta property="og:site_name" content="剑出">
+<meta property="og:description" content="背景以前项目中遇到需要发送消息触发提醒时，都是直接调用消息中心、三方消息渠道的API，进行业务消息推送 但是最近开发的几个需求，都要求对不同角色、不同消息渠道，进行消息触达推送。如果继续采用之前的方式，会造成相似功能重复开发，且难以维护。           迭代改进：基于上述背景，决定使用设计模式进行抽象，使其达到可复用、可扩展、配置化。 期望达成效果：后续有类似需求时，只需开发少量代码(策略扩">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://xiao-mading.github.io/index_img/design.png">
+<meta property="article:published_time" content="2023-02-08T04:46:20.000Z">
+<meta property="article:modified_time" content="2024-07-11T03:19:07.791Z">
+<meta property="article:author" content="XiaoMaDing">
+<meta property="article:tag" content="设计模式">
+<meta property="article:tag" content="策略模式">
+<meta property="article:tag" content="责任链模式">
+<meta property="article:tag" content="消息发送">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://xiao-mading.github.io/index_img/design.png">
+  
+  
+  
+  <title>项目实战：策略与责任链模式在项目中的应用 - 剑出</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"xiao-mading.github.io","root":"/","version":"1.9.4","typing":{"enable":true,"typeSpeed":40,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"left","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":2},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 60vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>剑出</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="项目实战：策略与责任链模式在项目中的应用"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-02-08 12:46" pubdate>
+          2023年2月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          9.8k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          82 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="padding-left: 2rem; margin-right: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">项目实战：策略与责任链模式在项目中的应用</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>以前项目中遇到需要发送消息触发提醒时，都是直接调用消息中心、三方消息渠道的API，进行业务消息推送</p>
+<p>但是最近开发的几个需求，都要求对不同角色、不同消息渠道，进行消息触达推送。如果继续采用之前的方式，会造成相似功能重复开发，且难以维护。</p>
+<img src="/2023/02/08/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AD%96%E7%95%A5%E4%B8%8E%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F%E5%9C%A8%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/image-20230608161258537.png" srcset="/img/loading.gif" lazyload alt="image-20230608161258537" style="zoom:80%;">  
+
+<p><b><br></b></p>
+<img src="/2023/02/08/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AD%96%E7%95%A5%E4%B8%8E%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F%E5%9C%A8%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/image-20230608161143052.png" srcset="/img/loading.gif" lazyload alt="image-20230608161143052" style="zoom:80%;"> 
+
+
+
+<h1 id="迭代"><a href="#迭代" class="headerlink" title="迭代"></a>迭代</h1><p>改进：基于上述背景，决定使用设计模式进行抽象，使其达到可复用、可扩展、配置化。</p>
+<p>期望达成效果：后续有类似需求时，只需开发少量代码(<code>策略扩展、消息内容组装</code>) + 配置，即可实现功能</p>
+<br>
+
+
+
+<h2 id="演示"><a href="#演示" class="headerlink" title="演示"></a>演示</h2><p>以【消费者收货】这个业务场景为例，看一下项目中的效果：</p>
+<p>□ Nacos配置：</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="attr">msg-push</span>:<span class="string"></span></span><br><span class="line">    <span class="attr">msgConfig</span>:<span class="string"></span></span><br><span class="line">      <span class="attr">&quot;CONFIRM_RECEIPT_V2&quot;</span>:     <span class="string"></span></span><br><span class="line">        <span class="attr">&quot;WX_CP&quot;</span>: <span class="string"></span></span><br><span class="line">          <span class="attr">template</span>: <span class="string">&quot;您已完成本次扫码收货，获得奖励共计：%s元；金额已发放至您的电子钱包&quot;</span></span><br><span class="line">        <span class="attr">&quot;WX_MP&quot;</span>:<span class="string"></span></span><br><span class="line">          <span class="attr">template</span>: <span class="string">&quot;fKpHLE8jS18NdRczF8iJBS1HPNazDi9XUd-dY34bpzU&quot;  </span></span><br><span class="line">        <span class="attr">&quot;WX_APP&quot;</span>:<span class="string"></span></span><br><span class="line">          <span class="attr">template</span>: <span class="string">&quot;NpPdb5ghfEZnoG0AHg8zthOWu0oHIx0QIdzS1m1LPVo&quot;      </span></span><br></pre></div></figure></td></tr></table></figure>
+
+<br>
+
+<p>□ 效果：在各个终端上，就会收到消息通知</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line">xx.RebateSmsMsgStrategy   - [消息V2]发送短信,msgType：CONFIRM_RECEIPT_V2,msgSendReq：</span><br><span class="line">xx.RebateWxCpMsgStrategy  - [消息V2]发送企微文本消息,msgType：CONFIRM_RECEIPT_V2,msgSendReq：</span><br><span class="line">xx.RebateWxMpMsgStrategy  - [消息V2]发送微信公众号消息,msgType：CONFIRM_RECEIPT_V2,msgSendReq：</span><br><span class="line">xx.RebateWxAppMsgStrategy - [消息V2]发送微信小程序消息,msgType：CONFIRM_RECEIPT_V2,msgSendReq：</span><br></pre></div></figure></td></tr></table></figure>
+
+
+
+
+
+<h2 id="设计"><a href="#设计" class="headerlink" title="设计"></a>设计</h2><p>□ 整体流程：</p>
+<img src="/2023/02/08/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AD%96%E7%95%A5%E4%B8%8E%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F%E5%9C%A8%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/image-20230608143511193.png" srcset="/img/loading.gif" lazyload alt="image-20230608143511193" style="zoom:80%;"> 
+
+<br>
+
+<br>
+
+<p>□ 类设计：责任链模式 + 策略模式</p>
+<img src="/2023/02/08/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AD%96%E7%95%A5%E4%B8%8E%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F%E5%9C%A8%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/image-20230608124549023.png" srcset="/img/loading.gif" lazyload alt="image-20230608124549023" style="zoom:80%;"> 
+
+
+
+<br>
+
+<br>
+
+<p>□ 配置设计：</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="attr">msg-push</span>:<span class="string"></span></span><br><span class="line">    <span class="attr">msgConfig</span>:<span class="string"></span></span><br><span class="line">      <span class="attr">&quot;CONFIRM_RECEIPT_V2&quot;</span>:<span class="string"></span></span><br><span class="line">        <span class="attr">&quot;WX_CP&quot;</span>: <span class="string"></span></span><br><span class="line">          <span class="attr">template</span>: <span class="string">&quot;您已完成本次扫码收货，获得奖励共计：%s元；金额已发放至您的电子钱包&quot;</span></span><br><span class="line">        <span class="attr">&quot;WX_MP&quot;</span>:<span class="string"></span></span><br><span class="line">          <span class="attr">template</span>: <span class="string">&quot;fKpHLE8jS18NdRczF8iJBS1HPNazDi9XUd-dY34bpzU&quot;  </span></span><br><span class="line">        <span class="attr">&quot;WX_APP&quot;</span>:<span class="string"></span></span><br><span class="line">          <span class="attr">template</span>: <span class="string">&quot;NpPdb5ghfEZnoG0AHg8zthOWu0oHIx0QIdzS1m1LPVo&quot;     </span></span><br><span class="line">        <span class="attr">&quot;SMS&quot;</span>:<span class="string"></span></span><br><span class="line">          <span class="attr">template</span>: <span class="string">&quot;SMS_267100068&quot;  </span></span><br><span class="line">      <span class="attr">&quot;其他发送消息的业务场景&quot;</span>:<span class="string"></span></span><br></pre></div></figure></td></tr></table></figure>
+
+
+
+<h1 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h1><p>整体类结构：</p>
+<img src="/2023/02/08/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AD%96%E7%95%A5%E4%B8%8E%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F%E5%9C%A8%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/image-20230608153923272.png" srcset="/img/loading.gif" lazyload alt="image-20230608153923272" style="zoom:67%;"> 
+
+
+
+
+
+<h2 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h2><ol>
+<li><p>消息推送配置类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="meta">@ConfigurationProperties(prefix = &quot;msg-push&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RebateMsgProperties</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 消息推送配置</span></span><br><span class="line"><span class="comment">     * key：消息业务场景，BizMsgTypeEnum</span></span><br><span class="line"><span class="comment">     * value：消息推送渠道，MsgPushChannelEnum</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> Map&lt;String, Map&lt;String, MsgConfig&gt;&gt; msgConfig = Maps.newHashMap();</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Data</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">MsgConfig</span> &#123;</span><br><span class="line">        <span class="comment">/**</span></span><br><span class="line"><span class="comment">         * 模板</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">private</span> String template;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">/**</span></span><br><span class="line"><span class="comment">         * 如果是企微机器人这类的，需指定发送到哪里，一般是个固定的配置</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">private</span> String to;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></div></figure></td></tr></table></figure>
+
+<img src="/2023/02/08/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AD%96%E7%95%A5%E4%B8%8E%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F%E5%9C%A8%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/image-20230608152018621.png" srcset="/img/loading.gif" lazyload alt="image-20230608152018621" style="zoom: 67%;"> 
+
+<img src="/2023/02/08/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AD%96%E7%95%A5%E4%B8%8E%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F%E5%9C%A8%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/image-20230608152116463.png" srcset="/img/loading.gif" lazyload alt="image-20230608152116463" style="zoom:67%;"> 
+</li>
+<li><p>消息业务场景枚举：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 消息业务场景枚举</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Getter</span></span><br><span class="line"><span class="meta">@AllArgsConstructor</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> <span class="title class_">RebateMsgTypeEnum</span> &#123;</span><br><span class="line"></span><br><span class="line">    CONFIRM_RECEIPT_V2(<span class="string">&quot;确认收货消息提醒&quot;</span>),</span><br><span class="line">    SCAN_SALE_V2(<span class="string">&quot;动销消息提醒&quot;</span>),</span><br><span class="line">    RECONCILIATION_HINT(<span class="string">&quot;账单对账提示消息&quot;</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> String desc;</span><br><span class="line">&#125;</span><br></pre></div></figure></td></tr></table></figure>
+</li>
+<li><p>消息推送渠道枚举：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 消息推送渠道枚举</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Getter</span></span><br><span class="line"><span class="meta">@AllArgsConstructor</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> <span class="title class_">MsgPushChannelEnum</span> &#123;</span><br><span class="line"></span><br><span class="line">    WX_CP(<span class="string">&quot;企业微信&quot;</span>),</span><br><span class="line">    WX_CP_ROBOT(<span class="string">&quot;企业微信机器人&quot;</span>),</span><br><span class="line">    WX_MP(<span class="string">&quot;微信公众号&quot;</span>),</span><br><span class="line">    WX_APP(<span class="string">&quot;微信小程序&quot;</span>),</span><br><span class="line">    SMS(<span class="string">&quot;短信&quot;</span>),</span><br><span class="line">    TAN_HOME(<span class="string">&quot;站内信&quot;</span>),</span><br><span class="line">    ;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String desc;</span><br><span class="line">&#125;</span><br></pre></div></figure></td></tr></table></figure></li>
+</ol>
+<h2 id="职责链"><a href="#职责链" class="headerlink" title="职责链"></a>职责链</h2><figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 消息处理责任链</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RebateMsgHandlerChain</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 注入所有消息策略实现类</span></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> RebateMsgStrategy[] rebateMsgServices;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 遍历所有消息策略，根据配置判断具体消息策略是否支持，调用策略发送消息</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgType</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> customMsgSendReqDto</span></span><br><span class="line"><span class="comment">     */</span>    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">sendRebateMsg</span><span class="params">(RebateMsgTypeEnum msgType, CustomMsgSendReqDto customMsgSendReqDto)</span> &#123;</span><br><span class="line">        <span class="keyword">for</span> (RebateMsgStrategy rebateMsgStrategy : rebateMsgServices) &#123;</span><br><span class="line">            <span class="keyword">if</span> (rebateMsgStrategy.support(msgType)) &#123;</span><br><span class="line">                rebateMsgStrategy.sendRebateMsg(msgType, customMsgSendReqDto);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></div></figure></td></tr></table></figure>
+
+
+
+
+
+<h2 id="策略"><a href="#策略" class="headerlink" title="策略"></a>策略</h2><ol>
+<li><p>接口：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">RebateMsgStrategy</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 消息类型是否支持</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgType</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="type">boolean</span> <span class="title function_">support</span><span class="params">(RebateMsgTypeEnum msgType)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 发送消息</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgType</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> customMsgSendReqDto</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">sendRebateMsg</span><span class="params">(RebateMsgTypeEnum msgType, CustomMsgSendReqDto customMsgSendReqDto)</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></div></figure></td></tr></table></figure>
+</li>
+<li><p>抽象实现：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">AbstractRebateMsgStrategy</span> <span class="keyword">implements</span> <span class="title class_">RebateMsgStrategy</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> RebateMsgProperties rebateMsgProperties;</span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> ThreadPoolExecutor threadPoolExecutor;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取消息推送渠道</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">abstract</span> MsgPushChannelEnum <span class="title function_">getMsgPushChannelEnum</span><span class="params">()</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 执行具体的消息发送策略</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgType</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgSendReqDto</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title function_">doRebateMsgSend</span><span class="params">(RebateMsgTypeEnum msgType,</span></span><br><span class="line"><span class="params">                                            MsgSendReqDto msgSendReqDto)</span>;</span><br><span class="line">     </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 消息类型是否支持</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgType</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">final</span> <span class="type">boolean</span> <span class="title function_">support</span><span class="params">(RebateMsgTypeEnum msgType)</span> &#123;</span><br><span class="line">        Map&lt;String, RebateMsgProperties.MsgConfig&gt; msgConfigMap = </span><br><span class="line">            rebateMsgProperties.getMsgConfig().get(msgType.name());</span><br><span class="line">        <span class="keyword">if</span> (MapUtils.isEmpty(msgConfigMap)) &#123;</span><br><span class="line">            log.warn(<span class="string">&quot;[消息V2]该消息类型配置不存在,msgType：&#123;&#125;&quot;</span>, msgType);</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (msgConfigMap.containsKey(getMsgPushChannelEnum().name())) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 发送消息</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgType</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> customMsgSendReqDto</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">sendMsg</span><span class="params">(RebateMsgTypeEnum msgType, CustomMsgSendReqDto customMsgSendReqDto)</span> &#123;</span><br><span class="line">        <span class="comment">// 根据业务场景、消息渠道不同，组装成对象的消息请求</span></span><br><span class="line">        <span class="type">MsgSendReqDto</span> <span class="variable">msgSendReqDto</span> <span class="operator">=</span> buildMsgContent(msgType, customMsgSendReqDto);</span><br><span class="line">        <span class="keyword">if</span> (Objects.isNull(msgSendReqDto)) &#123;</span><br><span class="line">            log.warn(<span class="string">&quot;[消息V2]buildMsgContent为空,不发送,msgType：&#123;&#125;,msgPushChannel：&#123;&#125;,req：&#123;&#125;&quot;</span>,</span><br><span class="line">                     msgType, getMsgPushChannelEnum().name(), </span><br><span class="line">                     JSON.toJSONString(customMsgSendReqDto));</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        doRebateMsgSendAsync(msgType, msgSendReqDto);</span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 异步执行消息发送</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgType</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgSendReqDto</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">doRebateMsgSendAsync</span><span class="params">(RebateMsgTypeEnum msgType, MsgSendReqDto msgSendReqDto)</span> &#123;</span><br><span class="line">        threadPoolExecutor.execute(RunnableWrapper.of(() -&gt; &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                doRebateMsgSend(msgType, msgSendReqDto);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                log.warn(<span class="string">&quot;[消息V2]异步发送异常errorMsg；&#123;&#125;,msgType：&#123;&#125;,msgPushChannel：&#123;&#125;&quot;</span>, </span><br><span class="line">                         e.getMessage(), msgType.name(), getMsgPushChannelEnum().name(), </span><br><span class="line">                         JSON.toJSONString(msgSendReqDto), e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;));</span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></div></figure></td></tr></table></figure>
+</li>
+<li><p>具体策略：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 发送短信</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RebateSmsMsgStrategy</span> <span class="keyword">extends</span> <span class="title class_">AbstractRebateMsgStrategy</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> MsgClient msgClient;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取消息推送渠道</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> MsgPushChannelEnum <span class="title function_">getMsgPushChannelEnum</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> MsgPushChannelEnum.SMS;</span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 执行具体的消息发送策略</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgType</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgSendReqDto</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">doRebateMsgSend</span><span class="params">(RebateMsgTypeEnum msgType, MsgSendReqDto msgSendReqDto)</span> &#123;</span><br><span class="line">        log.info(<span class="string">&quot;[消息V2]发送短信,msgType：&#123;&#125;,msgSendReqDto：&#123;&#125;&quot;</span>, msgType.name(),</span><br><span class="line">                 JSON.toJSONString(msgSendReqDto));</span><br><span class="line">        <span class="type">SmsMsgContentDto</span> <span class="variable">smsDto</span> <span class="operator">=</span> (SmsMsgContentDto) msgSendReqDto.getContentDto();</span><br><span class="line">        msgClient.sendSms(msgSendReqDto.getTo(), smsDto.getTemplateCode(), smsDto.getParamMap());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">    </span><br></pre></div></figure></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 发送企微消息</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RebateWxCpMsgStrategy</span> <span class="keyword">extends</span> <span class="title class_">AbstractRebateMsgStrategy</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> MsgClient msgClient;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取消息推送渠道</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> MsgPushChannelEnum <span class="title function_">getMsgPushChannelEnum</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> MsgPushChannelEnum.WX_CP;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 执行具体的消息发送策略</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgType</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgSendReqDto</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">doRebateMsgSend</span><span class="params">(RebateMsgTypeEnum msgType, MsgSendReqDto msgSendReqDto)</span> &#123;</span><br><span class="line">        log.info(<span class="string">&quot;[消息V2]发送企微消息,msgType：&#123;&#125;,msgSendReqDto：&#123;&#125;&quot;</span>, msgType.name(), </span><br><span class="line">                 JSON.toJSONString(msgSendReqDto));</span><br><span class="line">        <span class="type">Long</span> <span class="variable">to</span> <span class="operator">=</span> Long.valueOf(msgSendReqDto.getTo());</span><br><span class="line">        msgClient.sendWxCpTextByGuid(to, ((TextMsgContentDto) msgContent).getText());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></div></figure></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 发送企微机器人消息</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RebateWxCpRobotMsgStrategy</span> <span class="keyword">extends</span> <span class="title class_">AbstractRebateMsgStrategy</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取消息推送渠道</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> MsgPushChannelEnum <span class="title function_">getMsgPushChannelEnum</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> MsgPushChannelEnum.WX_CP_ROBOT;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 执行具体的消息发送策略</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgType</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgSendReqDto</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">doRebateMsgSend</span><span class="params">(RebateMsgTypeEnum msgType, MsgSendReqDto msgSendReqDto)</span> &#123;</span><br><span class="line">        log.info(<span class="string">&quot;[消息V2]发送企微机器人消息,msgType：&#123;&#125;,msgSendReqDto：&#123;&#125;&quot;</span>, msgType.name(), </span><br><span class="line">                 JSON.toJSONString(msgSendReqDto));</span><br><span class="line">        <span class="type">MsgContentDto</span> <span class="variable">msgContent</span> <span class="operator">=</span> msgSendReqDto.getContentDto();</span><br><span class="line">        <span class="keyword">if</span> (msgContent <span class="keyword">instanceof</span> TextMsgContentDto) &#123;</span><br><span class="line">            MonitorUtils.qwMonitor(msgSendReqDto.getTo(), </span><br><span class="line">                                   ((TextMsgContentDto) msgContent).getText());</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></div></figure></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 发送微信公众号消息</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RebateWxMpMsgStrategy</span> <span class="keyword">extends</span> <span class="title class_">AbstractRebateMsgStrategy</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> MsgCenterClient msgCenterClient;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取消息推送渠道</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> MsgPushChannelEnum <span class="title function_">getMsgPushChannelEnum</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> MsgPushChannelEnum.WX_MP;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 执行具体的消息发送策略</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgType</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgSendReqDto</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">doRebateMsgSend</span><span class="params">(RebateMsgTypeEnum msgType, MsgSendReqDto msgSendReqDto)</span> &#123;</span><br><span class="line">        log.info(<span class="string">&quot;[消息V2]发送微信公众号消息,msgType：&#123;&#125;,msgSendReqDto：&#123;&#125;&quot;</span>, msgType.name(), </span><br><span class="line">                 JSON.toJSONString(msgSendReqDto));</span><br><span class="line">        <span class="type">WxMpMsgContentDto</span> <span class="variable">wxMpMsgContentDto</span> <span class="operator">=</span> (WxMpMsgContentDto) msgSendReqDto.getContentDto();</span><br><span class="line">        <span class="type">MessageReq</span> <span class="variable">req</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">MessageReq</span>();</span><br><span class="line">        MessageReq.<span class="type">MpTemplateMsgReq</span> <span class="variable">mpTemplateMsg</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">MessageReq</span>.MpTemplateMsgReq();</span><br><span class="line">        mpTemplateMsg.setTemplateId(wxMpMsgContentDto.getTemplateId())</span><br><span class="line">                .setDataByMap(wxMpMsgContentDto.getParamMap())</span><br><span class="line">                .setMiniprogram(wxMpMsgContentDto.getMiniProgramAppId(),</span><br><span class="line">                                wxMpMsgContentDto.getUrl());</span><br><span class="line">        req.setAppid(wxMpMsgContentDto.getAppId())</span><br><span class="line">                .setMessageType(MessageCenterTypeEnum.WECHAT_WP.getType())</span><br><span class="line">                .setToUser(msgSendReqDto.getTo())</span><br><span class="line">                .setMpTemplateMsg(mpTemplateMsg);</span><br><span class="line">        msgCenterClient.sendMsg(getMsgPushChannelEnum(), req);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></div></figure></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 发送微信小程序消息</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="meta">@Service</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RebateWxAppMsgStrategy</span> <span class="keyword">extends</span> <span class="title class_">AbstractRebateMsgStrategy</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> MsgCenterClient msgCenterClient;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取消息推送渠道</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> MsgPushChannelEnum <span class="title function_">getMsgPushChannelEnum</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> MsgPushChannelEnum.WX_APP;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 执行具体的消息发送策略</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgType</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> msgSendReqDto</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">doRebateMsgSend</span><span class="params">(RebateMsgTypeEnum msgType, MsgSendReqDto msgSendReqDto)</span> &#123;</span><br><span class="line">        log.info(<span class="string">&quot;[分润消息V2]发送微信小程序消息,msgType：&#123;&#125;,msgSendReqDto：&#123;&#125;&quot;</span>, msgType.name(),</span><br><span class="line">                 JSON.toJSONString(msgSendReqDto));</span><br><span class="line"></span><br><span class="line">        <span class="type">WxAppMsgContentDto</span> <span class="variable">wxAppMsgContentDto</span></span><br><span class="line">            <span class="operator">=</span> (WxAppMsgContentDto) msgSendReqDto.getContentDto();</span><br><span class="line">        <span class="type">MessageReq</span> <span class="variable">req</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">MessageReq</span>();</span><br><span class="line">        MessageReq.<span class="type">WeappTemplateMsgReq</span> <span class="variable">weappTemplateMsgReq</span></span><br><span class="line">            <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">MessageReq</span>.WeappTemplateMsgReq();</span><br><span class="line">        weappTemplateMsgReq.setTemplateId(wxAppMsgContentDto.getTemplateId())</span><br><span class="line">                .setPage(wxAppMsgContentDto.getUrl())</span><br><span class="line">                .setDataByMap(wxAppMsgContentDto.getParamMap());</span><br><span class="line">        req.setAppid(wxAppMsgContentDto.getAppId())</span><br><span class="line">                .setMessageType(MessageCenterTypeEnum.WECHAT_APP.getType())</span><br><span class="line">                .setToUser(msgSendReqDto.getTo())</span><br><span class="line">                .setWeappTemplateMsg(weappTemplateMsgReq);</span><br><span class="line">        msgCenterClient.sendMsg(getMsgPushChannelEnum(), req);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></div></figure></td></tr></table></figure></li>
+</ol>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98/" class="category-chain-item">项目实战</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">#设计模式</a>
+      
+        <a href="/tags/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/">#策略模式</a>
+      
+        <a href="/tags/%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F/">#责任链模式</a>
+      
+        <a href="/tags/%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81/">#消息发送</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>项目实战：策略与责任链模式在项目中的应用</div>
+      <div>https://xiao-mading.github.io/2023/02/08/项目实战：策略与责任链模式在项目中的应用/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>XiaoMaDing</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年2月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/02/25/%E5%BC%82%E5%B8%B8%E5%AE%9A%E4%BD%8D%EF%BC%9A%E4%BD%BF%E7%94%A8MAT%E5%88%86%E6%9E%90OOM%E5%BC%82%E5%B8%B8/" title="异常定位：使用MAT分析OOM异常">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">异常定位：使用MAT分析OOM异常</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/" title="项目实战：距离用户最近的3个网点">
+                        <span class="hidden-mobile">项目实战：距离用户最近的3个网点</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.0/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.18.2/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script  src="https://lib.baomitu.com/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js" ></script>
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

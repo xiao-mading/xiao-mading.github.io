@@ -1,0 +1,716 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="XiaoMaDing">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="前言在使用SpringCloud全家桶作为分布式框架的分布式系统中，通常使用Feign进行服务间通信。1个复杂的业务流程，有时可能需要数十次的Feign远程调用，那么在开发阶段，如何更优雅的进行本地调试，来进行业务流程串通尼 注册中心如果公司有条件，dev、test都搭建的有完整的环境，那么开发完成后，需要进行自测、联调时，依赖方只需要发布到dev环境，并且注册到注册中心，我们在本地启动自己的服务">
+<meta property="og:type" content="article">
+<meta property="og:title" content="项目实战：优雅的进行Feign本地调试">
+<meta property="og:url" content="https://xiao-mading.github.io/2023/03/12/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BC%98%E9%9B%85%E7%9A%84%E8%BF%9B%E8%A1%8CFeign%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/index.html">
+<meta property="og:site_name" content="剑出">
+<meta property="og:description" content="前言在使用SpringCloud全家桶作为分布式框架的分布式系统中，通常使用Feign进行服务间通信。1个复杂的业务流程，有时可能需要数十次的Feign远程调用，那么在开发阶段，如何更优雅的进行本地调试，来进行业务流程串通尼 注册中心如果公司有条件，dev、test都搭建的有完整的环境，那么开发完成后，需要进行自测、联调时，依赖方只需要发布到dev环境，并且注册到注册中心，我们在本地启动自己的服务">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://xiao-mading.github.io/index_img/OpenFeign.png">
+<meta property="article:published_time" content="2023-03-12T04:48:28.000Z">
+<meta property="article:modified_time" content="2024-07-11T03:19:07.781Z">
+<meta property="article:author" content="XiaoMaDing">
+<meta property="article:tag" content="SpringCloud">
+<meta property="article:tag" content="Feign">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://xiao-mading.github.io/index_img/OpenFeign.png">
+  
+  
+  
+  <title>项目实战：优雅的进行Feign本地调试 - 剑出</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"xiao-mading.github.io","root":"/","version":"1.9.4","typing":{"enable":true,"typeSpeed":40,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"left","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":2},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 60vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>剑出</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="项目实战：优雅的进行Feign本地调试"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-03-12 12:48" pubdate>
+          2023年3月12日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          28 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="padding-left: 2rem; margin-right: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">项目实战：优雅的进行Feign本地调试</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>在使用<code>SpringCloud</code>全家桶作为分布式框架的分布式系统中，通常使用<code>Feign</code>进行服务间通信。1个复杂的业务流程，有时可能需要数十次的Feign远程调用，那么在开发阶段，如何更优雅的进行本地调试，来进行业务流程串通尼</p>
+<h1 id="注册中心"><a href="#注册中心" class="headerlink" title="注册中心"></a>注册中心</h1><p>如果公司有条件，<code>dev、test</code>都搭建的有完整的环境，那么开发完成后，需要进行自测、联调时，依赖方只需要发布到<code>dev</code>环境，并且注册到注册中心，我们在本地启动自己的服务，也注册到dev环境，就可以实现远程调用的联调</p>
+<p>□ 优点：简单，无需特殊的配置，直接通过注册中心调用即可</p>
+<p>□ 缺点：</p>
+<ol>
+<li>需要有多套完善的环境，部分公司可能没有<code>dev</code>环境，或者<code>dev</code>环境不完善，部分服务缺失，导致流程串不起来</li>
+<li>不够灵活，有时候可能需要在本地调用，其他服务<code>test、prod</code>环境的接口，通过注册中心无法实现</li>
+</ol>
+<h1 id="url"><a href="#url" class="headerlink" title="url"></a>url</h1><p>使用<code>@FeignClient</code>的<code>url</code>参数，即可随意指定调用的接口路径，从而避免注册中心调用</p>
+<p>一般用法：在本地联调时，我们会指定<code>@FeignClient</code>的<code>url</code>参数，然后再提测、上线时，再把<code>url</code>参数去掉</p>
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="meta">@FeignClient(value = &quot;irs-channel&quot;, contextId = &quot;V2ContractApi&quot;)</span></span><br><span class="line"><span class="comment">//@FeignClient(value = &quot;irs-channel&quot;, </span></span><br><span class="line"><span class="comment">//        contextId = &quot;V2ContractApi&quot;,</span></span><br><span class="line"><span class="comment">//        url = &quot;http://gateway.test.tanjiu.cn/channel&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">V2ContractApi</span> <span class="keyword">extends</span> <span class="title class_">ContractQueryApi</span> &#123;</span><br><span class="line">&#125;</span><br></pre></div></figure></td></tr></table></figure>
+
+
+
+<p>问题：看起来很完美、很灵活。但是很容易引发生产事故，公司就曾经发生过，因为忘记注释掉自测的<code>url</code>参数，导致上了生产环境后，发生接口调不通的事故</p>
+<h1 id="SpringBoot注解"><a href="#SpringBoot注解" class="headerlink" title="SpringBoot注解"></a>SpringBoot注解</h1><p>针对<code>url参数</code>的缺点，我们可以使用<code>SpringBoot</code>注解进行优化，避免引发生产事故</p>
+<h2 id="前言-1"><a href="#前言-1" class="headerlink" title="前言"></a>前言</h2><p>一般依赖其他服务提供Feign接口时，有如下步骤：</p>
+<ol>
+<li><p>引入其他服务的<code>Feign</code>接口定义jar包</p>
+<img src="/2023/03/12/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BC%98%E9%9B%85%E7%9A%84%E8%BF%9B%E8%A1%8CFeign%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/image-20230612163235708.png" srcset="/img/loading.gif" lazyload alt="image-20230612163235708" style="zoom: 67%;"> 
+
+<p><b></b></p>
+<img src="/2023/03/12/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BC%98%E9%9B%85%E7%9A%84%E8%BF%9B%E8%A1%8CFeign%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/image-20230612163548996.png" srcset="/img/loading.gif" lazyload alt="image-20230612163548996" style="zoom:80%;">
+</li>
+<li><p>实现Feign接口：添加<code>@FeignClient</code>注解 （这里其实不是实现，而是继承，但Feign会根据注解生成代理实现）</p>
+<img src="/2023/03/12/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BC%98%E9%9B%85%E7%9A%84%E8%BF%9B%E8%A1%8CFeign%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/image-20230612164309554.png" srcset="/img/loading.gif" lazyload alt="image-20230612164309554" style="zoom:80%;"> 
+</li>
+<li><p>使用：注入自己继承的<code>Feign</code>接口，调用<code>Api</code></p>
+<img src="/2023/03/12/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BC%98%E9%9B%85%E7%9A%84%E8%BF%9B%E8%A1%8CFeign%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/image-20230612164804260.png" srcset="/img/loading.gif" lazyload alt="image-20230612164804260" style="zoom:80%;">
+</li>
+<li><p>本地调试：此时就可以通过控制配置，来进行任意<code>url</code>路径的调试，而不会影响到<code>测试、生产</code>环境</p>
+<img src="/2023/03/12/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BC%98%E9%9B%85%E7%9A%84%E8%BF%9B%E8%A1%8CFeign%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/image-20230612170125347.png" srcset="/img/loading.gif" lazyload alt="image-20230612170125347" style="zoom:80%;"></li>
+</ol>
+<h2 id="改进"><a href="#改进" class="headerlink" title="改进"></a>改进</h2><p>对上述的第2、3步进行改进</p>
+<ol>
+<li><p>实现<code>Feign</code>接口：</p>
+<img src="/2023/03/12/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BC%98%E9%9B%85%E7%9A%84%E8%BF%9B%E8%A1%8CFeign%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/image-20230612170836930.png" srcset="/img/loading.gif" lazyload alt="image-20230612170836930" style="zoom:70%;"> 
+
+<p>a）标准实现：增加<code>primary</code>属性</p>
+<img src="/2023/03/12/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BC%98%E9%9B%85%E7%9A%84%E8%BF%9B%E8%A1%8CFeign%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/image-20230612165148721.png" srcset="/img/loading.gif" lazyload alt="image-20230612165148721" style="zoom:80%;"> 
+
+<p>b) 本地debug实现：增加<code>@Profile、@ConditionalOnProperty</code>，用于支持本地调试</p>
+<img src="/2023/03/12/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BC%98%E9%9B%85%E7%9A%84%E8%BF%9B%E8%A1%8CFeign%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/image-20230612165456538.png" srcset="/img/loading.gif" lazyload alt="image-20230612165456538" style="zoom:80%;">
+</li>
+<li><p>使用：不直接注入自己继承的<code>Feign</code>子类，而是注入别的服务提供的<code>Feign</code>接口</p>
+<img src="/2023/03/12/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BC%98%E9%9B%85%E7%9A%84%E8%BF%9B%E8%A1%8CFeign%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/image-20230612165919764.png" srcset="/img/loading.gif" lazyload alt="image-20230612165919764" style="zoom:80%;"></li>
+</ol>
+<h2 id="不足"><a href="#不足" class="headerlink" title="不足"></a>不足</h2><p>不足：上面的用法，在用少量Feign接口依赖时还好；但是当需要接入大量依赖的<code>Feign</code>接口时，就会发现变得很繁琐，每1个Feign接口，都需要’’实现’’2遍。</p>
+<img src="/2023/03/12/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BC%98%E9%9B%85%E7%9A%84%E8%BF%9B%E8%A1%8CFeign%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/image-20230612170501448.png" srcset="/img/loading.gif" lazyload alt="image-20230612170501448" style="zoom:80%;">  
+
+<p>有没有更优雅、更简单的方式尼？</p>
+<h1 id="Feign拦截器"><a href="#Feign拦截器" class="headerlink" title="Feign拦截器"></a>Feign拦截器</h1><p>Feign拦截器：Feign提供了拦截器，统一拦截Feign请求，来供我们进行一些公共的处理(例：添加header头等)</p>
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="keyword">import</span> com.google.common.collect.Maps;</span><br><span class="line"><span class="keyword">import</span> feign.Client;</span><br><span class="line"><span class="keyword">import</span> feign.RequestInterceptor;</span><br><span class="line"><span class="keyword">import</span> feign.RequestTemplate;</span><br><span class="line"><span class="keyword">import</span> feign.Target;</span><br><span class="line"><span class="keyword">import</span> lombok.extern.slf4j.Slf4j;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.lang3.ObjectUtils;</span><br><span class="line"><span class="keyword">import</span> org.springframework.beans.factory.annotation.Value;</span><br><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.Bean;</span><br><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.Profile;</span><br><span class="line"><span class="keyword">import</span> org.springframework.stereotype.Component;</span><br><span class="line"><span class="keyword">import</span> java.util.Map;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Slf4j</span></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="meta">@Profile(value = &quot;local&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">FeignContextInterceptor</span> <span class="keyword">implements</span> <span class="title class_">RequestInterceptor</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;$&#123;open.local.debug&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> <span class="type">boolean</span> debug;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 本地测试的请求地址</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Map&lt;String, String&gt; SERVICE_MAP_URL = Maps.newConcurrentMap();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        SERVICE_MAP_URL.put(<span class="string">&quot;service-channel&quot;</span>, <span class="string">&quot;http://gateway.test.xx.cn/channel&quot;</span>);</span><br><span class="line">        SERVICE_MAP_URL.put(<span class="string">&quot;service-inventory&quot;</span>, <span class="string">&quot;https://gateway.test.xx.cn/inventory&quot;</span>);</span><br><span class="line">        SERVICE_MAP_URL.put(<span class="string">&quot;service-paycenter&quot;</span>, <span class="string">&quot;http://gateway.test.xx.cn/pc&quot;</span>);</span><br><span class="line">        SERVICE_MAP_URL.put(<span class="string">&quot;service-code&quot;</span>, <span class="string">&quot;https://gateway.test.x.cn/code&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">apply</span><span class="params">(RequestTemplate requestTemplate)</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (debug) &#123;</span><br><span class="line">                Target&lt;?&gt; target = requestTemplate.feignTarget();</span><br><span class="line">                <span class="type">String</span> <span class="variable">url</span> <span class="operator">=</span> SERVICE_MAP_URL.get(target.name());</span><br><span class="line">                <span class="keyword">if</span> (ObjectUtils.isEmpty(url))&#123;</span><br><span class="line">                    <span class="keyword">return</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                Target.HardCodedTarget&lt;?&gt; hardCodedTarget </span><br><span class="line">                    = <span class="keyword">new</span> <span class="title class_">Target</span>.HardCodedTarget(target.type(), target.name(), url);</span><br><span class="line">                requestTemplate.feignTarget(hardCodedTarget);</span><br><span class="line">                hardCodedTarget.apply(requestTemplate);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            log.warn(<span class="string">&quot;api request convert json fail.&quot;</span>, e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="keyword">public</span> Client <span class="title function_">feignClient</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">//指定url地址后，不能使用默认的配置的LoadBalancerFeignClient，需要显示注入client</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">Client</span>.Default(<span class="literal">null</span>, <span class="literal">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></div></figure></td></tr></table></figure>
+
+<p>开启调试开关：</p>
+<img src="/2023/03/12/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BC%98%E9%9B%85%E7%9A%84%E8%BF%9B%E8%A1%8CFeign%E6%9C%AC%E5%9C%B0%E8%B0%83%E8%AF%95/image-20230612175632514.png" srcset="/img/loading.gif" lazyload alt="image-20230612175632514" style="zoom: 80%;"> 
+
+
+
+<p>通过自定义的拦截器，就可以实现所有<code>Feign</code>地址的批量管理。</p>
+<p>在某些场景，比如数据修复时，可能需要连接生产环境的查询接口时，也很实用</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98/" class="category-chain-item">项目实战</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/SpringCloud/">#SpringCloud</a>
+      
+        <a href="/tags/Feign/">#Feign</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>项目实战：优雅的进行Feign本地调试</div>
+      <div>https://xiao-mading.github.io/2023/03/12/项目实战：优雅的进行Feign本地调试/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>XiaoMaDing</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年3月12日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/03/25/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F-%E5%A4%B1%E6%95%88%E7%BC%93%E5%AD%98/" title="项目实战：分布式系统-失效缓存">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">项目实战：分布式系统-失效缓存</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/02/25/%E5%BC%82%E5%B8%B8%E5%AE%9A%E4%BD%8D%EF%BC%9A%E4%BD%BF%E7%94%A8MAT%E5%88%86%E6%9E%90OOM%E5%BC%82%E5%B8%B8/" title="异常定位：使用MAT分析OOM异常">
+                        <span class="hidden-mobile">异常定位：使用MAT分析OOM异常</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.0/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.18.2/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script  src="https://lib.baomitu.com/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js" ></script>
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

@@ -1,0 +1,736 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="XiaoMaDing">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="业务需求业务需求：公司最近为了推广产品、积累C端用户流量池，策划了1个营销活动；消费者可参与营销活动，在线上抢占活动产品，然后去公司线下的合作网点领取奖品实物。用户参加活动时，需要查找10KM内，距离用户最近的3个网点的地址，以便判断是否可以参与本次活动，以及抢占成功后，查看领奖网点地址    技术实现系统流程图，大致如下：       红色部分：需要对外提供1个查询接口，根据前端传入的用户经纬度">
+<meta property="og:type" content="article">
+<meta property="og:title" content="项目实战：距离用户最近的3个网点">
+<meta property="og:url" content="https://xiao-mading.github.io/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/index.html">
+<meta property="og:site_name" content="剑出">
+<meta property="og:description" content="业务需求业务需求：公司最近为了推广产品、积累C端用户流量池，策划了1个营销活动；消费者可参与营销活动，在线上抢占活动产品，然后去公司线下的合作网点领取奖品实物。用户参加活动时，需要查找10KM内，距离用户最近的3个网点的地址，以便判断是否可以参与本次活动，以及抢占成功后，查看领奖网点地址    技术实现系统流程图，大致如下：       红色部分：需要对外提供1个查询接口，根据前端传入的用户经纬度">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://xiao-mading.github.io/index_img/nearby.png">
+<meta property="article:published_time" content="2023-01-10T10:45:49.000Z">
+<meta property="article:modified_time" content="2024-07-11T03:19:07.796Z">
+<meta property="article:author" content="XiaoMaDing">
+<meta property="article:tag" content="Redis-Geo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://xiao-mading.github.io/index_img/nearby.png">
+  
+  
+  
+  <title>项目实战：距离用户最近的3个网点 - 剑出</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"xiao-mading.github.io","root":"/","version":"1.9.4","typing":{"enable":true,"typeSpeed":40,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"left","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":2},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 60vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>剑出</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="项目实战：距离用户最近的3个网点"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-01-10 18:45" pubdate>
+          2023年1月10日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          30 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="padding-left: 2rem; margin-right: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">项目实战：距离用户最近的3个网点</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="业务需求"><a href="#业务需求" class="headerlink" title="业务需求"></a>业务需求</h1><p>业务需求：公司最近为了推广产品、积累C端用户流量池，策划了1个营销活动；消费者可参与营销活动，在线上抢占活动产品，然后去公司线下的合作网点领取奖品实物。用户参加活动时，需要查找<code>10KM内，距离用户最近的3个网点</code>的地址，以便判断是否可以参与本次活动，以及抢占成功后，查看领奖网点地址</p>
+<img src="/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/Snipaste_2023-06-08_11-28-41.png" srcset="/img/loading.gif" lazyload alt="Snipaste_2023-06-08_11-28-41" style="zoom:75%;"> 
+
+<h1 id="技术实现"><a href="#技术实现" class="headerlink" title="技术实现"></a>技术实现</h1><p>系统流程图，大致如下：</p>
+<img src="/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/image-20230607141543311.png" srcset="/img/loading.gif" lazyload alt="image-20230607141543311" style="zoom: 80%;">    
+
+<p>红色部分：需要对外提供1个查询接口，根据前端传入的用户经纬度坐标，查询距离用户最近的3个网点地址。那么如何实现这个功能尼？</p>
+<h2 id="Mysql函数"><a href="#Mysql函数" class="headerlink" title="Mysql函数"></a>Mysql函数</h2><p>由于工期很紧，因此采用了Mysql函数来实现此功能</p>
+<h3 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h3><p>□ 需要使用到的Mysql函数：<code>st_distance()</code>   （单位：米）</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"># 两点距离：mysql <span class="number">5.6</span></span><br><span class="line"><span class="keyword">select</span> st_distance(point(<span class="number">0</span>,<span class="number">0</span>), point(<span class="number">1</span>,<span class="number">1</span>));</span><br><span class="line"><span class="keyword">select</span> st_distance(point(<span class="number">120.10591</span>, <span class="number">30.30163</span>), point(<span class="number">120.13026</span>, <span class="number">30.25961</span>));</span><br><span class="line"></span><br><span class="line"># 两点球面距离：mysql <span class="number">5.7</span><span class="number">.6</span></span><br><span class="line"><span class="keyword">select</span> st_distance_sphere(point(<span class="number">0</span>,<span class="number">0</span>), point(<span class="number">1</span>,<span class="number">1</span>));</span><br><span class="line"><span class="keyword">select</span> st_distance_sphere(point(<span class="number">120.10591</span>, <span class="number">30.30163</span>), point(<span class="number">120.13026</span>, <span class="number">30.25961</span>));</span><br></pre></div></figure></td></tr></table></figure>
+
+<br>
+
+<p>□ 业务sql：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="keyword">select</span></span><br><span class="line">t.id,       </span><br><span class="line"># <span class="comment">-----------------网点的经纬度坐标---------------用户的经纬度坐标-------- </span></span><br><span class="line">st_distance_sphere(point (t.gpsx, t.gpsy), point(<span class="number">134.307000</span>,<span class="number">48.364000</span>)) <span class="keyword">as</span> distance</span><br><span class="line"><span class="keyword">from</span> t_point t </span><br><span class="line"><span class="keyword">where</span> </span><br><span class="line"># 过滤错误数据：经纬度反了，或者不正确的 (否则报错：Incorrect arguments <span class="keyword">to</span> st_distance_sphere)</span><br><span class="line">(t.gpsx <span class="keyword">between</span> <span class="number">-180</span> <span class="keyword">and</span> <span class="number">180</span>) <span class="keyword">and</span> (t.gpsy <span class="keyword">between</span> <span class="number">-90</span> <span class="keyword">and</span> <span class="number">90</span>)</span><br><span class="line"># <span class="number">10</span>KM以内 </span><br><span class="line"><span class="keyword">and</span> distance <span class="operator">&lt;</span> <span class="number">10000</span></span><br><span class="line"><span class="keyword">order</span> <span class="keyword">by</span> distance </span><br><span class="line">limit <span class="number">3</span>;  </span><br></pre></div></figure></td></tr></table></figure>
+
+<img src="/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/image-20230607143804335.png" srcset="/img/loading.gif" lazyload alt="image-20230607143804335" style="zoom:80%;"> 
+
+
+
+<h3 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h3><p>问题：在测试环境时，一切正常。但是上到生产后，在活动高峰期，数据库CPU出现告警(<code>达到了90%以上</code>)，经过排查后发现大量请求阻塞在该sql。</p>
+<p>问题分析： </p>
+<ol>
+<li><p>业务：由于该业务属于秒杀性质的活动，高峰期参与活动的用户激增</p>
+</li>
+<li><p>技术：</p>
+<p>a) <code>QPS</code>激增：虽然经过测试单条sql的执行时间小于1s，但是当<code>QPS</code>上来之后，大量请求阻塞在该sql</p>
+<p>b) 索引失效：虽然在经纬度字段上加了索引，但是在索引列上使用了函数计算，导致索引失效，进行了全表扫描</p>
+<img src="/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/image-20230607144745319.png" srcset="/img/loading.gif" lazyload alt="image-20230607144745319" style="zoom:80%;"></li>
+</ol>
+<h3 id="解决"><a href="#解决" class="headerlink" title="解决"></a>解决</h3><p>问题定位到了，那如何解决尼？</p>
+<p>现在生产数据库的<code>CPU</code>已经告警了，所以技术方案优化已经来不及了，需要从短解、长解两个方面来制定解决方案</p>
+<p>□ 短解：</p>
+<ol>
+<li>数据库限流：紧急对该<code>sql</code>配置限流规则 （阿里云提供的功能）</li>
+<li>数据库升配：紧急升级数据库的硬件配置 （云服务器，加钱）</li>
+</ol>
+<p>□ 长解：</p>
+<ol>
+<li>更换技术实现：使用<code>Redis Geo</code>来实现该功能</li>
+<li>缓存：可以将查询结果，根据用户id作为key，做短时间的缓存；避免用户频繁刷新时，进行重复计算</li>
+<li>风控限流：对于恶意请求、刷接口的这类异常请求，需要有风控限流机制，进行自动限流</li>
+</ol>
+<h2 id="Redis-Geo"><a href="#Redis-Geo" class="headerlink" title="Redis Geo"></a>Redis Geo</h2><h3 id="写入"><a href="#写入" class="headerlink" title="写入"></a>写入</h3><p>□ 写入：将经纬度数据写入<code>Redis Geo</code>中  </p>
+<p>底层命令：<code>geoadd</code></p>
+<ol>
+<li><p>存量网点：将所有存量网点的经纬度信息，初始化到Redis中</p>
+</li>
+<li><p>增量网点：新签约的线下网点，签约完成后，需要将经纬度信息，写入到Redis中</p>
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">addGeo</span><span class="params">(List&lt;PointBo&gt; pointBoList)</span> &#123;</span><br><span class="line">    <span class="comment">// 过滤掉经纬度不合法的错误数据</span></span><br><span class="line">    pointBoList = filterWrongData(pointBoList);</span><br><span class="line">    <span class="keyword">if</span> (CollectionUtils.isEmpty(pointBoList)) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 分批写入Geo</span></span><br><span class="line">    <span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    Map&lt;String, Point&gt; points = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">200</span>);</span><br><span class="line">    <span class="keyword">for</span> (PointBo pointBo : pointBoList) &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">memberKey</span> <span class="operator">=</span> String.valueOf(pointBo.getId());</span><br><span class="line">        <span class="type">Point</span> <span class="variable">point</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Point</span>(pointBo.getGpsx().doubleValue(), </span><br><span class="line">                                pointBo.getGpsy().doubleValue());</span><br><span class="line">        points.put(memberKey, point);</span><br><span class="line"></span><br><span class="line">        i++;</span><br><span class="line">        <span class="keyword">if</span> (i == <span class="number">100</span> || i == pointBoList.size() - <span class="number">1</span>) &#123;</span><br><span class="line">            <span class="comment">// 批量添加到Geo</span></span><br><span class="line">            stringRedisTemplate.boundGeoOps(POINT_GEO_LOCATION).add(points);</span><br><span class="line">            i = <span class="number">0</span>;</span><br><span class="line">            points = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">200</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></div></figure></td></tr></table></figure></li>
+</ol>
+<h3 id="查询"><a href="#查询" class="headerlink" title="查询"></a>查询</h3><p>□ 查询：携带用户经纬度 + 搜索半径，从<code>Redis Geo</code>中搜索符合要求的目标网点 </p>
+<p>底层命令：<code>georadius</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 查询指定搜索半径内，距离当前坐标最近的3个网点</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> gpsx     目标经度</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> gpsy     目标纬度</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> distance 搜索半径(米)</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> List&lt;Long&gt; <span class="title function_">getNearbyPoint</span><span class="params">(Double gpsx,</span></span><br><span class="line"><span class="params">                                 Double gpsy,</span></span><br><span class="line"><span class="params">                                 Double distance)</span> &#123;</span><br><span class="line">    <span class="type">Point</span> <span class="variable">point</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Point</span>(gpsx, gpsy);</span><br><span class="line"></span><br><span class="line">    <span class="type">Metric</span> <span class="variable">metric</span> <span class="operator">=</span> RedisGeoCommands.DistanceUnit.KILOMETERS;</span><br><span class="line">    <span class="type">Distance</span> <span class="variable">distances</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Distance</span>(distance, metric);</span><br><span class="line"></span><br><span class="line">    <span class="type">Circle</span> <span class="variable">circle</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Circle</span>(point, distances); <span class="comment">// 单位：默认为米</span></span><br><span class="line">    RedisGeoCommands.<span class="type">GeoRadiusCommandArgs</span> <span class="variable">args</span> <span class="operator">=</span> RedisGeoCommands.GeoRadiusCommandArgs</span><br><span class="line">        .newGeoRadiusArgs()</span><br><span class="line">        .includeDistance()</span><br><span class="line">        .includeCoordinates()</span><br><span class="line">        .sortAscending()</span><br><span class="line">        .limit(<span class="number">3</span>);</span><br><span class="line">    GeoResults&lt;RedisGeoCommands.GeoLocation&lt;String&gt;&gt; radius = stringRedisTemplate.opsForGeo()</span><br><span class="line">        .radius(POINT_GEO_LOCATION, circle, args);</span><br><span class="line">    List&lt;Long&gt; nearbyPointIdList = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">    <span class="keyword">if</span> (radius != <span class="literal">null</span>) &#123;</span><br><span class="line">        radius.forEach(geoLocationGeoResult -&gt; &#123;</span><br><span class="line">            RedisGeoCommands.GeoLocation&lt;String&gt; content = geoLocationGeoResult.getContent();</span><br><span class="line">            <span class="comment">// name：网点id</span></span><br><span class="line">            <span class="type">String</span> <span class="variable">name</span> <span class="operator">=</span> content.getName();</span><br><span class="line">            <span class="keyword">if</span> (StringUtils.isNotEmpty(name) &amp;&amp; StringUtils.isNumeric(name)) &#123;</span><br><span class="line">                nearbyPointIdList.add(Long.valueOf(name));</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> nearbyPointIdList;</span><br><span class="line">&#125;</span><br></pre></div></figure></td></tr></table></figure>
+
+
+
+<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><p>□ 接口测试：</p>
+<img src="/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/Snipaste_2022-02-23_14-56-45.png" srcset="/img/loading.gif" lazyload alt="Snipaste_2022-02-23_14-56-45" style="zoom:67%;"> 
+
+<p><br><br></p>
+<p>□ 压测：由于吸取了之前的教训，所以本次技术变更后，进行了接口压力测试</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><figure><div class="code-wrapper"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></div></figure></td><td class="code"><figure><div class="code-wrapper"><pre><span class="line">环境配置：</span><br><span class="line">	服务：dev</span><br><span class="line">	Redis：dev</span><br><span class="line">	参数：搜索半径r=20</span><br><span class="line">压测结果：QPS ≈ 320+ ，随着搜索半径↓，QPS↑</span><br></pre></div></figure></td></tr></table></figure>
+
+<img src="/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/Snipaste_2021-12-01_17-20-04.png" srcset="/img/loading.gif" lazyload alt="Snipaste_2021-12-01_17-20-04" style="zoom:80%;">
+
+<p><b><br></b></p>
+<img src="/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/Snipaste_2021-12-01_17-30-21.png" srcset="/img/loading.gif" lazyload alt="Snipaste_2021-12-01_17-30-21" style="zoom:80%;">
+
+<br>
+
+<br>
+
+<br>
+
+<p>□ Redis内存占用：本地测试，<code>5.6万</code>网点数据，占用内存<code>6.7M</code>左右</p>
+<img src="/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/image-20230608121959690.png" srcset="/img/loading.gif" lazyload alt="image-20230608121959690" style="zoom:80%;">
+
+
+
+<h3 id="问题-1"><a href="#问题-1" class="headerlink" title="问题"></a>问题</h3><p>问题：如果线下网点数据过多，比如有几百万，那全部存入Redis Geo，会导致底层的Zset变的很大，查询性能会急剧下降</p>
+<p>由于我司的网点数据为几万的数量级，所以不存在此问题，那如果真有几百万的网点数据，有什么解决方案尼？</p>
+<h2 id="图数据库"><a href="#图数据库" class="headerlink" title="图数据库"></a>图数据库</h2><p>使用图形数据库，例如：Neo4j</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><section class="footnotes"><div class="footnote-list"><ol><li><span id="fn:1" class="footnote-text"><span><a target="_blank" rel="noopener" href="https://neo4j.com/docs/">neo4j官方文档</a>
+<a href="#fnref:1" rev="footnote" class="footnote-backref"> ↩</a></span></span></li></ol></div></section>
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98/" class="category-chain-item">项目实战</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/Redis-Geo/">#Redis-Geo</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>项目实战：距离用户最近的3个网点</div>
+      <div>https://xiao-mading.github.io/2023/01/10/项目实战：距离用户最近的3个网点/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>XiaoMaDing</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年1月10日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/02/08/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AD%96%E7%95%A5%E4%B8%8E%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F%E5%9C%A8%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/" title="项目实战：策略与责任链模式在项目中的应用">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">项目实战：策略与责任链模式在项目中的应用</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/07/24/%E5%BC%80%E7%AE%B1%E5%8D%B3%E7%94%A8%E7%9A%84xxl-job%E5%90%8E%E5%8F%B0%E5%8A%A8%E6%80%81%E7%AE%A1%E7%90%86starter/" title="开箱即用的Xxl-job后台动态管理Starter">
+                        <span class="hidden-mobile">开箱即用的Xxl-job后台动态管理Starter</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.0/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.18.2/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script  src="https://lib.baomitu.com/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js" ></script>
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
