@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>项目实战：距离用户最近的3个网点 | 剑出</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="业务需求业务需求：公司最近为了推广产品、积累C端用户流量池，策划了1个营销活动；消费者可参与营销活动，在线上抢占活动产品，然后去公司线下的合作网点领取奖品实物。用户参加活动时，需要查找10KM内，距离用户最近的3个网点的地址，以便判断是否可以参与本次活动，以及抢占成功后，查看领奖网点地址    技术实现系统流程图，大致如下：       红色部分：需要对外提供1个查询接口，根据前端传入的用户经纬度">
+<meta property="og:type" content="article">
+<meta property="og:title" content="项目实战：距离用户最近的3个网点">
+<meta property="og:url" content="http://example.com/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/index.html">
+<meta property="og:site_name" content="剑出">
+<meta property="og:description" content="业务需求业务需求：公司最近为了推广产品、积累C端用户流量池，策划了1个营销活动；消费者可参与营销活动，在线上抢占活动产品，然后去公司线下的合作网点领取奖品实物。用户参加活动时，需要查找10KM内，距离用户最近的3个网点的地址，以便判断是否可以参与本次活动，以及抢占成功后，查看领奖网点地址    技术实现系统流程图，大致如下：       红色部分：需要对外提供1个查询接口，根据前端传入的用户经纬度">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/Snipaste_2023-06-08_11-28-41.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/image-20230607141543311.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/image-20230607143804335.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/image-20230607144745319.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/Snipaste_2022-02-23_14-56-45.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/Snipaste_2021-12-01_17-20-04.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/Snipaste_2021-12-01_17-30-21.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/image-20230608121959690.png">
+<meta property="article:published_time" content="2023-01-10T10:45:49.000Z">
+<meta property="article:modified_time" content="2024-07-11T03:19:07.796Z">
+<meta property="article:author" content="XiaoMaDing">
+<meta property="article:tag" content="Redis-Geo">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/Snipaste_2023-06-08_11-28-41.png">
+  
+    <link rel="alternate" href="/mdw-blog/atom.xml" title="剑出" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/mdw-blog/favicon.png">
+  
+  
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-source-code-pro@0.0.71/index.min.css">
+
+  
+  
+<link rel="stylesheet" href="/mdw-blog/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/mdw-blog/fancybox/jquery.fancybox.min.css">
+
+  
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/mdw-blog/" id="logo">剑出</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/mdw-blog/" id="subtitle">&lt;p&gt;苟有恒,何必三更起五更眠&lt;/p&gt;&lt;p&gt;最无益,莫过一日曝十日寒&lt;/p&gt;</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"><span class="fa fa-bars"></span></a>
+        
+          <a class="main-nav-link" href="/mdw-blog/">Home</a>
+        
+          <a class="main-nav-link" href="/mdw-blog/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+        
+          <a class="nav-icon" href="/mdw-blog/atom.xml" title="RSS 订阅"><span class="fa fa-rss"></span></a>
+        
+        <a class="nav-icon nav-search-btn" title="搜索"><span class="fa fa-search"></span></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="搜索"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-项目实战：距离用户最近的3个网点" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/" class="article-date">
+  <time class="dt-published" datetime="2023-01-10T10:45:49.000Z" itemprop="datePublished">2023-01-10</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/mdw-blog/categories/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98/">项目实战</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      项目实战：距离用户最近的3个网点
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h1 id="业务需求"><a href="#业务需求" class="headerlink" title="业务需求"></a>业务需求</h1><p>业务需求：公司最近为了推广产品、积累C端用户流量池，策划了1个营销活动；消费者可参与营销活动，在线上抢占活动产品，然后去公司线下的合作网点领取奖品实物。用户参加活动时，需要查找<code>10KM内，距离用户最近的3个网点</code>的地址，以便判断是否可以参与本次活动，以及抢占成功后，查看领奖网点地址</p>
+<img src="/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/Snipaste_2023-06-08_11-28-41.png" alt="Snipaste_2023-06-08_11-28-41" style="zoom:75%;"> 
+
+<h1 id="技术实现"><a href="#技术实现" class="headerlink" title="技术实现"></a>技术实现</h1><p>系统流程图，大致如下：</p>
+<img src="/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/image-20230607141543311.png" alt="image-20230607141543311" style="zoom: 80%;">    
+
+<p>红色部分：需要对外提供1个查询接口，根据前端传入的用户经纬度坐标，查询距离用户最近的3个网点地址。那么如何实现这个功能尼？</p>
+<h2 id="Mysql函数"><a href="#Mysql函数" class="headerlink" title="Mysql函数"></a>Mysql函数</h2><p>由于工期很紧，因此采用了Mysql函数来实现此功能</p>
+<h3 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h3><p>□ 需要使用到的Mysql函数：<code>st_distance()</code>   （单位：米）</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># 两点距离：mysql <span class="number">5.6</span></span><br><span class="line"><span class="keyword">select</span> st_distance(point(<span class="number">0</span>,<span class="number">0</span>), point(<span class="number">1</span>,<span class="number">1</span>));</span><br><span class="line"><span class="keyword">select</span> st_distance(point(<span class="number">120.10591</span>, <span class="number">30.30163</span>), point(<span class="number">120.13026</span>, <span class="number">30.25961</span>));</span><br><span class="line"></span><br><span class="line"># 两点球面距离：mysql <span class="number">5.7</span><span class="number">.6</span></span><br><span class="line"><span class="keyword">select</span> st_distance_sphere(point(<span class="number">0</span>,<span class="number">0</span>), point(<span class="number">1</span>,<span class="number">1</span>));</span><br><span class="line"><span class="keyword">select</span> st_distance_sphere(point(<span class="number">120.10591</span>, <span class="number">30.30163</span>), point(<span class="number">120.13026</span>, <span class="number">30.25961</span>));</span><br></pre></td></tr></table></figure>
+
+<br>
+
+<p>□ 业务sql：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span></span><br><span class="line">t.id,       </span><br><span class="line"># <span class="comment">-----------------网点的经纬度坐标---------------用户的经纬度坐标-------- </span></span><br><span class="line">st_distance_sphere(point (t.gpsx, t.gpsy), point(<span class="number">134.307000</span>,<span class="number">48.364000</span>)) <span class="keyword">as</span> distance</span><br><span class="line"><span class="keyword">from</span> t_point t </span><br><span class="line"><span class="keyword">where</span> </span><br><span class="line"># 过滤错误数据：经纬度反了，或者不正确的 (否则报错：Incorrect arguments <span class="keyword">to</span> st_distance_sphere)</span><br><span class="line">(t.gpsx <span class="keyword">between</span> <span class="number">-180</span> <span class="keyword">and</span> <span class="number">180</span>) <span class="keyword">and</span> (t.gpsy <span class="keyword">between</span> <span class="number">-90</span> <span class="keyword">and</span> <span class="number">90</span>)</span><br><span class="line"># <span class="number">10</span>KM以内 </span><br><span class="line"><span class="keyword">and</span> distance <span class="operator">&lt;</span> <span class="number">10000</span></span><br><span class="line"><span class="keyword">order</span> <span class="keyword">by</span> distance </span><br><span class="line">limit <span class="number">3</span>;  </span><br></pre></td></tr></table></figure>
+
+<img src="/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/image-20230607143804335.png" alt="image-20230607143804335" style="zoom:80%;"> 
+
+
+
+<h3 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h3><p>问题：在测试环境时，一切正常。但是上到生产后，在活动高峰期，数据库CPU出现告警(<code>达到了90%以上</code>)，经过排查后发现大量请求阻塞在该sql。</p>
+<p>问题分析： </p>
+<ol>
+<li><p>业务：由于该业务属于秒杀性质的活动，高峰期参与活动的用户激增</p>
+</li>
+<li><p>技术：</p>
+<p>a) <code>QPS</code>激增：虽然经过测试单条sql的执行时间小于1s，但是当<code>QPS</code>上来之后，大量请求阻塞在该sql</p>
+<p>b) 索引失效：虽然在经纬度字段上加了索引，但是在索引列上使用了函数计算，导致索引失效，进行了全表扫描</p>
+<img src="/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/image-20230607144745319.png" alt="image-20230607144745319" style="zoom:80%;"></li>
+</ol>
+<h3 id="解决"><a href="#解决" class="headerlink" title="解决"></a>解决</h3><p>问题定位到了，那如何解决尼？</p>
+<p>现在生产数据库的<code>CPU</code>已经告警了，所以技术方案优化已经来不及了，需要从短解、长解两个方面来制定解决方案</p>
+<p>□ 短解：</p>
+<ol>
+<li>数据库限流：紧急对该<code>sql</code>配置限流规则 （阿里云提供的功能）</li>
+<li>数据库升配：紧急升级数据库的硬件配置 （云服务器，加钱）</li>
+</ol>
+<p>□ 长解：</p>
+<ol>
+<li>更换技术实现：使用<code>Redis Geo</code>来实现该功能</li>
+<li>缓存：可以将查询结果，根据用户id作为key，做短时间的缓存；避免用户频繁刷新时，进行重复计算</li>
+<li>风控限流：对于恶意请求、刷接口的这类异常请求，需要有风控限流机制，进行自动限流</li>
+</ol>
+<h2 id="Redis-Geo"><a href="#Redis-Geo" class="headerlink" title="Redis Geo"></a>Redis Geo</h2><h3 id="写入"><a href="#写入" class="headerlink" title="写入"></a>写入</h3><p>□ 写入：将经纬度数据写入<code>Redis Geo</code>中  </p>
+<p>底层命令：<code>geoadd</code></p>
+<ol>
+<li><p>存量网点：将所有存量网点的经纬度信息，初始化到Redis中</p>
+</li>
+<li><p>增量网点：新签约的线下网点，签约完成后，需要将经纬度信息，写入到Redis中</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">addGeo</span><span class="params">(List&lt;PointBo&gt; pointBoList)</span> &#123;</span><br><span class="line">    <span class="comment">// 过滤掉经纬度不合法的错误数据</span></span><br><span class="line">    pointBoList = filterWrongData(pointBoList);</span><br><span class="line">    <span class="keyword">if</span> (CollectionUtils.isEmpty(pointBoList)) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 分批写入Geo</span></span><br><span class="line">    <span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    Map&lt;String, Point&gt; points = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">200</span>);</span><br><span class="line">    <span class="keyword">for</span> (PointBo pointBo : pointBoList) &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">memberKey</span> <span class="operator">=</span> String.valueOf(pointBo.getId());</span><br><span class="line">        <span class="type">Point</span> <span class="variable">point</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Point</span>(pointBo.getGpsx().doubleValue(), </span><br><span class="line">                                pointBo.getGpsy().doubleValue());</span><br><span class="line">        points.put(memberKey, point);</span><br><span class="line"></span><br><span class="line">        i++;</span><br><span class="line">        <span class="keyword">if</span> (i == <span class="number">100</span> || i == pointBoList.size() - <span class="number">1</span>) &#123;</span><br><span class="line">            <span class="comment">// 批量添加到Geo</span></span><br><span class="line">            stringRedisTemplate.boundGeoOps(POINT_GEO_LOCATION).add(points);</span><br><span class="line">            i = <span class="number">0</span>;</span><br><span class="line">            points = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">200</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h3 id="查询"><a href="#查询" class="headerlink" title="查询"></a>查询</h3><p>□ 查询：携带用户经纬度 + 搜索半径，从<code>Redis Geo</code>中搜索符合要求的目标网点 </p>
+<p>底层命令：<code>georadius</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 查询指定搜索半径内，距离当前坐标最近的3个网点</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> gpsx     目标经度</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> gpsy     目标纬度</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> distance 搜索半径(米)</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> List&lt;Long&gt; <span class="title function_">getNearbyPoint</span><span class="params">(Double gpsx,</span></span><br><span class="line"><span class="params">                                 Double gpsy,</span></span><br><span class="line"><span class="params">                                 Double distance)</span> &#123;</span><br><span class="line">    <span class="type">Point</span> <span class="variable">point</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Point</span>(gpsx, gpsy);</span><br><span class="line"></span><br><span class="line">    <span class="type">Metric</span> <span class="variable">metric</span> <span class="operator">=</span> RedisGeoCommands.DistanceUnit.KILOMETERS;</span><br><span class="line">    <span class="type">Distance</span> <span class="variable">distances</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Distance</span>(distance, metric);</span><br><span class="line"></span><br><span class="line">    <span class="type">Circle</span> <span class="variable">circle</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Circle</span>(point, distances); <span class="comment">// 单位：默认为米</span></span><br><span class="line">    RedisGeoCommands.<span class="type">GeoRadiusCommandArgs</span> <span class="variable">args</span> <span class="operator">=</span> RedisGeoCommands.GeoRadiusCommandArgs</span><br><span class="line">        .newGeoRadiusArgs()</span><br><span class="line">        .includeDistance()</span><br><span class="line">        .includeCoordinates()</span><br><span class="line">        .sortAscending()</span><br><span class="line">        .limit(<span class="number">3</span>);</span><br><span class="line">    GeoResults&lt;RedisGeoCommands.GeoLocation&lt;String&gt;&gt; radius = stringRedisTemplate.opsForGeo()</span><br><span class="line">        .radius(POINT_GEO_LOCATION, circle, args);</span><br><span class="line">    List&lt;Long&gt; nearbyPointIdList = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">    <span class="keyword">if</span> (radius != <span class="literal">null</span>) &#123;</span><br><span class="line">        radius.forEach(geoLocationGeoResult -&gt; &#123;</span><br><span class="line">            RedisGeoCommands.GeoLocation&lt;String&gt; content = geoLocationGeoResult.getContent();</span><br><span class="line">            <span class="comment">// name：网点id</span></span><br><span class="line">            <span class="type">String</span> <span class="variable">name</span> <span class="operator">=</span> content.getName();</span><br><span class="line">            <span class="keyword">if</span> (StringUtils.isNotEmpty(name) &amp;&amp; StringUtils.isNumeric(name)) &#123;</span><br><span class="line">                nearbyPointIdList.add(Long.valueOf(name));</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> nearbyPointIdList;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><p>□ 接口测试：</p>
+<img src="/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/Snipaste_2022-02-23_14-56-45.png" alt="Snipaste_2022-02-23_14-56-45" style="zoom:67%;"> 
+
+<p><br><br></p>
+<p>□ 压测：由于吸取了之前的教训，所以本次技术变更后，进行了接口压力测试</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">环境配置：</span><br><span class="line">	服务：dev</span><br><span class="line">	Redis：dev</span><br><span class="line">	参数：搜索半径r=20</span><br><span class="line">压测结果：QPS ≈ 320+ ，随着搜索半径↓，QPS↑</span><br></pre></td></tr></table></figure>
+
+<img src="/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/Snipaste_2021-12-01_17-20-04.png" alt="Snipaste_2021-12-01_17-20-04" style="zoom:80%;">
+
+<p><b><br></b></p>
+<img src="/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/Snipaste_2021-12-01_17-30-21.png" alt="Snipaste_2021-12-01_17-30-21" style="zoom:80%;">
+
+<br>
+
+<br>
+
+<br>
+
+<p>□ Redis内存占用：本地测试，<code>5.6万</code>网点数据，占用内存<code>6.7M</code>左右</p>
+<img src="/mdw-blog/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/image-20230608121959690.png" alt="image-20230608121959690" style="zoom:80%;">
+
+
+
+<h3 id="问题-1"><a href="#问题-1" class="headerlink" title="问题"></a>问题</h3><p>问题：如果线下网点数据过多，比如有几百万，那全部存入Redis Geo，会导致底层的Zset变的很大，查询性能会急剧下降</p>
+<p>由于我司的网点数据为几万的数量级，所以不存在此问题，那如果真有几百万的网点数据，有什么解决方案尼？</p>
+<h2 id="图数据库"><a href="#图数据库" class="headerlink" title="图数据库"></a>图数据库</h2><p>使用图形数据库，例如：Neo4j</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2023/01/10/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E8%B7%9D%E7%A6%BB%E7%94%A8%E6%88%B7%E6%9C%80%E8%BF%91%E7%9A%843%E4%B8%AA%E7%BD%91%E7%82%B9/" data-id="clygytc8z002m6wvbc2q89rii" data-title="项目实战：距离用户最近的3个网点" class="article-share-link"><span class="fa fa-share">分享</span></a>
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/mdw-blog/tags/Redis-Geo/" rel="tag">Redis-Geo</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/mdw-blog/2023/02/08/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AD%96%E7%95%A5%E4%B8%8E%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F%E5%9C%A8%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">前一篇</strong>
+      <div class="article-nav-title">
+        
+          项目实战：策略与责任链模式在项目中的应用
+        
+      </div>
+    </a>
+  
+  
+    <a href="/mdw-blog/2022/07/24/%E5%BC%80%E7%AE%B1%E5%8D%B3%E7%94%A8%E7%9A%84xxl-job%E5%90%8E%E5%8F%B0%E5%8A%A8%E6%80%81%E7%AE%A1%E7%90%86starter/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">后一篇</strong>
+      <div class="article-nav-title">开箱即用的Xxl-job后台动态管理Starter</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E5%BC%80%E5%8F%91/">开发</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E5%BC%82%E5%B8%B8%E5%AE%9A%E4%BD%8D/">异常定位</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85/">生产事故</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E7%94%9F%E4%BA%A7%E5%AE%9E%E8%B7%B5/">生产实践</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/">系统设计</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98/">项目实战</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Excel/" rel="tag">Excel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Feign/" rel="tag">Feign</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Hystrix/" rel="tag">Hystrix</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/MAT/" rel="tag">MAT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/OOM/" rel="tag">OOM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/QLExpress/" rel="tag">QLExpress</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Redis-Geo/" rel="tag">Redis-Geo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/RockeMQ/" rel="tag">RockeMQ</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Semaphore/" rel="tag">Semaphore</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/SpringBoot-Starter/" rel="tag">SpringBoot Starter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/SpringCloud/" rel="tag">SpringCloud</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/ThreadLocal/" rel="tag">ThreadLocal</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/xxl-job/" rel="tag">xxl-job</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E4%BA%8B%E5%8A%A1/" rel="tag">事务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E4%BB%BB%E5%8A%A1%E5%8A%A8%E6%80%81%E7%AE%A1%E7%90%86/" rel="tag">任务动态管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" rel="tag">分布式锁</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E5%8F%8D%E5%B0%84/" rel="tag">反射</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E5%8F%91%E5%B8%83%E6%B8%85%E5%8D%95/" rel="tag">发布清单</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E6%8A%80%E6%9C%AF%E6%96%B9%E6%A1%88/" rel="tag">技术方案</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81/" rel="tag">消息发送</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E7%94%9F%E4%BA%A7%E4%BA%8B%E5%8A%A1/" rel="tag">生产事务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/" rel="tag">策略模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E7%BA%BF%E7%A8%8B%E6%B1%A0/" rel="tag">线程池</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" rel="tag">设计模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F/" rel="tag">责任链模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91/" rel="tag">软件开发</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/" rel="tag">通用对账中心</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E9%9C%80%E6%B1%82%E5%88%86%E6%9E%90/" rel="tag">需求分析</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/mdw-blog/tags/Excel/" style="font-size: 10px;">Excel</a> <a href="/mdw-blog/tags/Feign/" style="font-size: 10px;">Feign</a> <a href="/mdw-blog/tags/Hystrix/" style="font-size: 20px;">Hystrix</a> <a href="/mdw-blog/tags/MAT/" style="font-size: 10px;">MAT</a> <a href="/mdw-blog/tags/OOM/" style="font-size: 10px;">OOM</a> <a href="/mdw-blog/tags/QLExpress/" style="font-size: 10px;">QLExpress</a> <a href="/mdw-blog/tags/Redis-Geo/" style="font-size: 10px;">Redis-Geo</a> <a href="/mdw-blog/tags/RockeMQ/" style="font-size: 10px;">RockeMQ</a> <a href="/mdw-blog/tags/Semaphore/" style="font-size: 20px;">Semaphore</a> <a href="/mdw-blog/tags/SpringBoot-Starter/" style="font-size: 10px;">SpringBoot Starter</a> <a href="/mdw-blog/tags/SpringCloud/" style="font-size: 10px;">SpringCloud</a> <a href="/mdw-blog/tags/ThreadLocal/" style="font-size: 10px;">ThreadLocal</a> <a href="/mdw-blog/tags/xxl-job/" style="font-size: 10px;">xxl-job</a> <a href="/mdw-blog/tags/%E4%BA%8B%E5%8A%A1/" style="font-size: 10px;">事务</a> <a href="/mdw-blog/tags/%E4%BB%BB%E5%8A%A1%E5%8A%A8%E6%80%81%E7%AE%A1%E7%90%86/" style="font-size: 10px;">任务动态管理</a> <a href="/mdw-blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 10px;">分布式锁</a> <a href="/mdw-blog/tags/%E5%8F%8D%E5%B0%84/" style="font-size: 10px;">反射</a> <a href="/mdw-blog/tags/%E5%8F%91%E5%B8%83%E6%B8%85%E5%8D%95/" style="font-size: 10px;">发布清单</a> <a href="/mdw-blog/tags/%E6%8A%80%E6%9C%AF%E6%96%B9%E6%A1%88/" style="font-size: 10px;">技术方案</a> <a href="/mdw-blog/tags/%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81/" style="font-size: 10px;">消息发送</a> <a href="/mdw-blog/tags/%E7%94%9F%E4%BA%A7%E4%BA%8B%E5%8A%A1/" style="font-size: 10px;">生产事务</a> <a href="/mdw-blog/tags/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">策略模式</a> <a href="/mdw-blog/tags/%E7%BA%BF%E7%A8%8B%E6%B1%A0/" style="font-size: 10px;">线程池</a> <a href="/mdw-blog/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">设计模式</a> <a href="/mdw-blog/tags/%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">责任链模式</a> <a href="/mdw-blog/tags/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91/" style="font-size: 20px;">软件开发</a> <a href="/mdw-blog/tags/%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/" style="font-size: 10px;">通用对账中心</a> <a href="/mdw-blog/tags/%E9%9C%80%E6%B1%82%E5%88%86%E6%9E%90/" style="font-size: 10px;">需求分析</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/08/">八月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/07/">七月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/05/">五月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/04/">四月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/03/">三月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/02/">二月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/01/">一月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2022/07/">七月 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2022/05/">五月 2022</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/">系统设计：通用对账中心</a>
+          </li>
+        
+          <li>
+            <a href="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/">生产事故：事务与锁</a>
+          </li>
+        
+          <li>
+            <a href="/mdw-blog/2023/07/01/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9ARocketMQ%E6%B6%88%E6%81%AF%E4%BD%93%E5%A4%A7%E5%B0%8F%E8%B6%85%E5%87%BA%E9%99%90%E5%88%B6/">生产事故：RocketMQ消息体大小超出限制</a>
+          </li>
+        
+          <li>
+            <a href="/mdw-blog/2023/05/22/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E7%BA%BF%E7%A8%8B%E6%B1%A0%E5%8C%85%E8%A3%85%E4%B8%8E%E5%8F%82%E6%95%B0%E4%BC%A0%E9%80%92/">项目实战：线程池包装与参数传递</a>
+          </li>
+        
+          <li>
+            <a href="/mdw-blog/2023/05/01/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9AExcel%E6%89%B9%E9%87%8F%E5%AF%BC%E5%85%A5%E4%B8%AD%E6%B6%89%E5%8F%8A%E7%9A%84%E6%8A%80%E6%9C%AF%E7%82%B9/">项目实战：Excel批量导入中涉及的技术点</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2024 XiaoMaDing<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/mdw-blog/" class="mobile-nav-link">Home</a>
+  
+    <a href="/mdw-blog/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/mdw-blog/js/jquery-3.6.4.min.js"></script>
+
+
+
+  
+<script src="/mdw-blog/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/mdw-blog/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>

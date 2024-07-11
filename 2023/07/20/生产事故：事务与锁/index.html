@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>生产事故：事务与锁 | 剑出</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="背景□ 现象：组内同事负责的支付中心，在与三方支付平台进行对账时，发现本地钱包、三方支付平台的余额对不上 □ 排查：在钱包流水表中发现了异常，存在两条一模一样的流水记录     问题排查经过现象初步定位，是修改钱包余额的代码存在问题，但是钱包余额修改是加了分布式锁的，并且正常运行了很久了，近期没有进行过修改。于是组内成员(也包括我)开始协助排查 1、复现问题：先看是否能复现问题  找到该条记录的，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="生产事故：事务与锁">
+<meta property="og:url" content="http://example.com/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/index.html">
+<meta property="og:site_name" content="剑出">
+<meta property="og:description" content="背景□ 现象：组内同事负责的支付中心，在与三方支付平台进行对账时，发现本地钱包、三方支付平台的余额对不上 □ 排查：在钱包流水表中发现了异常，存在两条一模一样的流水记录     问题排查经过现象初步定位，是修改钱包余额的代码存在问题，但是钱包余额修改是加了分布式锁的，并且正常运行了很久了，近期没有进行过修改。于是组内成员(也包括我)开始协助排查 1、复现问题：先看是否能复现问题  找到该条记录的，">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2022-05-25_16-30-37.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2022-05-25_16-55-30.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2022-05-25_17-00-03.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-18_12-50-04.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-18_12-43-17.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-31-40.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-32-16.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-49-22.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-51-23.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-53-32.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-57-51.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-59-52.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_13-00-00.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_13-02-18.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_13-03-38.png">
+<meta property="article:published_time" content="2023-07-20T05:21:48.000Z">
+<meta property="article:modified_time" content="2024-07-11T03:19:07.750Z">
+<meta property="article:author" content="XiaoMaDing">
+<meta property="article:tag" content="分布式锁">
+<meta property="article:tag" content="事务">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2022-05-25_16-30-37.png">
+  
+    <link rel="alternate" href="/mdw-blog/atom.xml" title="剑出" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/mdw-blog/favicon.png">
+  
+  
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-source-code-pro@0.0.71/index.min.css">
+
+  
+  
+<link rel="stylesheet" href="/mdw-blog/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/mdw-blog/fancybox/jquery.fancybox.min.css">
+
+  
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/mdw-blog/" id="logo">剑出</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/mdw-blog/" id="subtitle">&lt;p&gt;苟有恒,何必三更起五更眠&lt;/p&gt;&lt;p&gt;最无益,莫过一日曝十日寒&lt;/p&gt;</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"><span class="fa fa-bars"></span></a>
+        
+          <a class="main-nav-link" href="/mdw-blog/">Home</a>
+        
+          <a class="main-nav-link" href="/mdw-blog/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+        
+          <a class="nav-icon" href="/mdw-blog/atom.xml" title="RSS 订阅"><span class="fa fa-rss"></span></a>
+        
+        <a class="nav-icon nav-search-btn" title="搜索"><span class="fa fa-search"></span></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="搜索"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-生产事故：事务与锁" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/" class="article-date">
+  <time class="dt-published" datetime="2023-07-20T05:21:48.000Z" itemprop="datePublished">2023-07-20</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/mdw-blog/categories/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85/">生产事故</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      生产事故：事务与锁
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>□ 现象：组内同事负责的支付中心，在与三方支付平台进行对账时，发现本地钱包、三方支付平台的余额对不上</p>
+<p>□ 排查：在钱包流水表中发现了异常，存在两条一模一样的流水记录</p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2022-05-25_16-30-37.png" alt="1" style="zoom:80%;">
+
+
+
+<h1 id="问题排查"><a href="#问题排查" class="headerlink" title="问题排查"></a>问题排查</h1><p>经过现象初步定位，是修改钱包余额的代码存在问题，但是钱包余额修改是加了分布式锁的，并且正常运行了很久了，近期没有进行过修改。于是组内成员(也包括我)开始协助排查</p>
+<p>1、复现问题：先看是否能复现问题</p>
+<ol>
+<li>找到该条记录的，接口参数，进行debug，发现结果无误</li>
+<li>怀疑是多线程并发导致，使用单元测试，用多线程去压测 （未复现）</li>
+</ol>
+<p>2、既然业务逻辑没问题，就怀疑分布式锁没锁住了，从下面几个方面排查</p>
+<ol>
+<li><p>Redis主从切换：怀疑是redis发生了主从切换，导致锁丢失</p>
+<p>让运维协助排查，业务动作的前后几天，都未发现有Redis主从切换</p>
+</li>
+<li><p>详细排查代码：最终发现了问题</p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2022-05-25_16-55-30.png" alt="2" style="zoom:80%;">
+
+<p><b></b></p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2022-05-25_17-00-03.png" alt="3" style="zoom:80%;"> 
+
+<p>2.1）事务源码：看过Spring事务源码的，都知道是基于AOP实现的，执行流程如下：</p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-18_12-50-04.png" alt="4" style="zoom:70%;">   
+
+<p>2.2）问题：目标方法执行完了，锁就释放了，但是此时事务还没提交 （锁的范围 &lt; 事务范围）</p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-18_12-43-17.png" alt="5" style="zoom:80%;">    
+
+<p>2.3）并发：如果在A请求，锁释放了，事务还没提交时。B请求又进来了，也能正常进行业务操作</p>
+</li>
+</ol>
+<h1 id="解决"><a href="#解决" class="headerlink" title="解决"></a>解决</h1><p>问题分析清楚了，那就有以下几种解决方案</p>
+<h2 id="1、数据库锁"><a href="#1、数据库锁" class="headerlink" title="1、数据库锁"></a>1、数据库锁</h2><p>不要使用基于Redis的分布式锁了，改为使用数据库悲观锁</p>
+<p>在<code>changeAmount()</code>方法中，用数据库的悲观锁 (悲观锁在事务提交完成后，才会释放)</p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-31-40.png" alt="6" style="zoom:80%;">
+
+<p><b></b></p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-32-16.png" alt="7" style="zoom:80%;">
+
+
+
+
+
+<h2 id="2、加锁范围调整"><a href="#2、加锁范围调整" class="headerlink" title="2、加锁范围调整"></a>2、加锁范围调整</h2><p>既然问题出在，锁的范围 &lt; 事务范围，那就让锁的范围 &gt;&#x3D; 事务范围即可</p>
+<p>改动点：在业务操作的最外层，加分布式锁</p>
+<p>考虑：由于历史债务，调用方有很多，所以暂时未采用该方案</p>
+<p>□ 伪代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 收入</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">income</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="type">LockInfo</span> <span class="variable">lock</span> <span class="operator">=</span> lockTemplate.lock(lockKey);</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 操作钱包、钱包流水</span></span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        lockTemplate.releaseLock(lock);</span><br><span class="line">    &#125;            </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 转账</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="type">LockInfo</span> <span class="variable">lock</span> <span class="operator">=</span> lockTemplate.lock(lockKey);</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 操作钱包、钱包流水</span></span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        lockTemplate.releaseLock(lock);</span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 扣减</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="type">LockInfo</span> <span class="variable">lock</span> <span class="operator">=</span> lockTemplate.lock(lockKey);</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 操作钱包、钱包流水</span></span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        lockTemplate.releaseLock(lock);</span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h1 id="加锁切面"><a href="#加锁切面" class="headerlink" title="加锁切面"></a>加锁切面</h1><p>这里再提一句，一般分布式锁，我们会封装成1个AOP，使用注解来调用。那在某些使用情况下，也需要注意</p>
+<h2 id="1、AOP失效"><a href="#1、AOP失效" class="headerlink" title="1、AOP失效"></a>1、AOP失效</h2><p>加锁AOP的失效，同事务失效的原因一样，如果采用this调用等方式，会导致AOP失效，使用时需要注意</p>
+<h2 id="2、AOP优先级"><a href="#2、AOP优先级" class="headerlink" title="2、AOP优先级"></a>2、AOP优先级</h2><p>之前，在其他项目中，我看到有人这样使用：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RedisLock</span></span><br><span class="line"><span class="meta">@Transactional</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doSomething</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="comment">// 业务操作</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为<code>@Transactional</code>底层一样是使用AOP来实现的，所以也可能会存问题，具体来说就是：</p>
+<p>若<code>@RedisLock切面优先级</code> &lt; <code>@Transactional切面优先级</code>，就会导致【锁的范围 &lt; 事务范围】，就会出现上面的问题</p>
+<p>那么自定义的AOP切面，和事务的切面，优先级，到底谁高谁低尼？</p>
+<br>
+
+<p>1、事务切面优先级</p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-49-22.png" alt="8" style="zoom:80%;"> 
+
+<p>我们知道事务切面<code>BeanFactoryTransactionAttributeSourceAdvisor</code>，实现了Ordered，但是并未重写该方法</p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-51-23.png" alt="9" style="zoom:80%;"> 
+
+<p>而<code>AbstractPointcutAdvisor</code>中，如果未指定order，默认为：<code>Ordered.LOWEST_PRECEDENCE</code>也就是最低优先级</p>
+<p>2、自定义切面优先级</p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-53-32.png" alt="10" style="zoom:80%;">
+
+<p>假设我们没有使用<code>@Order</code>，<code>@Aspect</code>最终会被封装为<code>InstantiationModelAwarePointcutAdvisorImpl</code></p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-57-51.png" alt="11" style="zoom:80%;"> 
+
+<p><b></b></p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_12-59-52.png" alt="12" style="zoom:80%;">
+
+<p><b></b></p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_13-00-00.png" alt="11" style="zoom:80%;"> 
+
+<p>从源码，我们可以看到，如果不指定Order值，默认为：<code>Ordered.LOWEST_PRECEDENCE</code>也就是最低优先级</p>
+<p>3、都是最低优先级，那到底哪个先执行？测试一下，就知道了</p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_13-02-18.png" alt="12" style="zoom:80%;">
+
+<p><b></b></p>
+<img src="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/Snipaste_2023-12-20_13-03-38.png" alt="13" style="zoom:80%;"> 
+
+<p>可以看到，事务切面的优先级更高，会先执行。</p>
+<p>□ 解决方案：</p>
+<ol>
+<li><p>在外层方法中加<code>@RedisLock</code>：推荐</p>
+</li>
+<li><p>给<code>LockRedisAop</code>设置优先级：不推荐</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">1、因为公司一般是封装的公共组件，不太容易更改；即使改了，可能对其他业务造成不可评估的影响</span><br><span class="line">2、万一哪天优先级被别人改了，可能引发生产事故</span><br><span class="line">3、维护难度大，需要对Spring源码有一定掌握程度，否则无法预料程序执行结果</span><br></pre></td></tr></table></figure></li>
+</ol>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/" data-id="clygytc8h00066wvbdm7602i3" data-title="生产事故：事务与锁" class="article-share-link"><span class="fa fa-share">分享</span></a>
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/mdw-blog/tags/%E4%BA%8B%E5%8A%A1/" rel="tag">事务</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/mdw-blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" rel="tag">分布式锁</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">前一篇</strong>
+      <div class="article-nav-title">
+        
+          系统设计：通用对账中心
+        
+      </div>
+    </a>
+  
+  
+    <a href="/mdw-blog/2023/07/01/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9ARocketMQ%E6%B6%88%E6%81%AF%E4%BD%93%E5%A4%A7%E5%B0%8F%E8%B6%85%E5%87%BA%E9%99%90%E5%88%B6/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">后一篇</strong>
+      <div class="article-nav-title">生产事故：RocketMQ消息体大小超出限制</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E5%BC%80%E5%8F%91/">开发</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E5%BC%82%E5%B8%B8%E5%AE%9A%E4%BD%8D/">异常定位</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85/">生产事故</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E7%94%9F%E4%BA%A7%E5%AE%9E%E8%B7%B5/">生产实践</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/">系统设计</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98/">项目实战</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Excel/" rel="tag">Excel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Feign/" rel="tag">Feign</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Hystrix/" rel="tag">Hystrix</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/MAT/" rel="tag">MAT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/OOM/" rel="tag">OOM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/QLExpress/" rel="tag">QLExpress</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Redis-Geo/" rel="tag">Redis-Geo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/RockeMQ/" rel="tag">RockeMQ</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Semaphore/" rel="tag">Semaphore</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/SpringBoot-Starter/" rel="tag">SpringBoot Starter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/SpringCloud/" rel="tag">SpringCloud</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/ThreadLocal/" rel="tag">ThreadLocal</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/xxl-job/" rel="tag">xxl-job</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E4%BA%8B%E5%8A%A1/" rel="tag">事务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E4%BB%BB%E5%8A%A1%E5%8A%A8%E6%80%81%E7%AE%A1%E7%90%86/" rel="tag">任务动态管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" rel="tag">分布式锁</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E5%8F%8D%E5%B0%84/" rel="tag">反射</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E5%8F%91%E5%B8%83%E6%B8%85%E5%8D%95/" rel="tag">发布清单</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E6%8A%80%E6%9C%AF%E6%96%B9%E6%A1%88/" rel="tag">技术方案</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81/" rel="tag">消息发送</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E7%94%9F%E4%BA%A7%E4%BA%8B%E5%8A%A1/" rel="tag">生产事务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/" rel="tag">策略模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E7%BA%BF%E7%A8%8B%E6%B1%A0/" rel="tag">线程池</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" rel="tag">设计模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F/" rel="tag">责任链模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91/" rel="tag">软件开发</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/" rel="tag">通用对账中心</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E9%9C%80%E6%B1%82%E5%88%86%E6%9E%90/" rel="tag">需求分析</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/mdw-blog/tags/Excel/" style="font-size: 10px;">Excel</a> <a href="/mdw-blog/tags/Feign/" style="font-size: 10px;">Feign</a> <a href="/mdw-blog/tags/Hystrix/" style="font-size: 20px;">Hystrix</a> <a href="/mdw-blog/tags/MAT/" style="font-size: 10px;">MAT</a> <a href="/mdw-blog/tags/OOM/" style="font-size: 10px;">OOM</a> <a href="/mdw-blog/tags/QLExpress/" style="font-size: 10px;">QLExpress</a> <a href="/mdw-blog/tags/Redis-Geo/" style="font-size: 10px;">Redis-Geo</a> <a href="/mdw-blog/tags/RockeMQ/" style="font-size: 10px;">RockeMQ</a> <a href="/mdw-blog/tags/Semaphore/" style="font-size: 20px;">Semaphore</a> <a href="/mdw-blog/tags/SpringBoot-Starter/" style="font-size: 10px;">SpringBoot Starter</a> <a href="/mdw-blog/tags/SpringCloud/" style="font-size: 10px;">SpringCloud</a> <a href="/mdw-blog/tags/ThreadLocal/" style="font-size: 10px;">ThreadLocal</a> <a href="/mdw-blog/tags/xxl-job/" style="font-size: 10px;">xxl-job</a> <a href="/mdw-blog/tags/%E4%BA%8B%E5%8A%A1/" style="font-size: 10px;">事务</a> <a href="/mdw-blog/tags/%E4%BB%BB%E5%8A%A1%E5%8A%A8%E6%80%81%E7%AE%A1%E7%90%86/" style="font-size: 10px;">任务动态管理</a> <a href="/mdw-blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 10px;">分布式锁</a> <a href="/mdw-blog/tags/%E5%8F%8D%E5%B0%84/" style="font-size: 10px;">反射</a> <a href="/mdw-blog/tags/%E5%8F%91%E5%B8%83%E6%B8%85%E5%8D%95/" style="font-size: 10px;">发布清单</a> <a href="/mdw-blog/tags/%E6%8A%80%E6%9C%AF%E6%96%B9%E6%A1%88/" style="font-size: 10px;">技术方案</a> <a href="/mdw-blog/tags/%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81/" style="font-size: 10px;">消息发送</a> <a href="/mdw-blog/tags/%E7%94%9F%E4%BA%A7%E4%BA%8B%E5%8A%A1/" style="font-size: 10px;">生产事务</a> <a href="/mdw-blog/tags/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">策略模式</a> <a href="/mdw-blog/tags/%E7%BA%BF%E7%A8%8B%E6%B1%A0/" style="font-size: 10px;">线程池</a> <a href="/mdw-blog/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">设计模式</a> <a href="/mdw-blog/tags/%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">责任链模式</a> <a href="/mdw-blog/tags/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91/" style="font-size: 20px;">软件开发</a> <a href="/mdw-blog/tags/%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/" style="font-size: 10px;">通用对账中心</a> <a href="/mdw-blog/tags/%E9%9C%80%E6%B1%82%E5%88%86%E6%9E%90/" style="font-size: 10px;">需求分析</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/08/">八月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/07/">七月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/05/">五月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/04/">四月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/03/">三月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/02/">二月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/01/">一月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2022/07/">七月 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2022/05/">五月 2022</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/">系统设计：通用对账中心</a>
+          </li>
+        
+          <li>
+            <a href="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/">生产事故：事务与锁</a>
+          </li>
+        
+          <li>
+            <a href="/mdw-blog/2023/07/01/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9ARocketMQ%E6%B6%88%E6%81%AF%E4%BD%93%E5%A4%A7%E5%B0%8F%E8%B6%85%E5%87%BA%E9%99%90%E5%88%B6/">生产事故：RocketMQ消息体大小超出限制</a>
+          </li>
+        
+          <li>
+            <a href="/mdw-blog/2023/05/22/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E7%BA%BF%E7%A8%8B%E6%B1%A0%E5%8C%85%E8%A3%85%E4%B8%8E%E5%8F%82%E6%95%B0%E4%BC%A0%E9%80%92/">项目实战：线程池包装与参数传递</a>
+          </li>
+        
+          <li>
+            <a href="/mdw-blog/2023/05/01/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9AExcel%E6%89%B9%E9%87%8F%E5%AF%BC%E5%85%A5%E4%B8%AD%E6%B6%89%E5%8F%8A%E7%9A%84%E6%8A%80%E6%9C%AF%E7%82%B9/">项目实战：Excel批量导入中涉及的技术点</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2024 XiaoMaDing<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/mdw-blog/" class="mobile-nav-link">Home</a>
+  
+    <a href="/mdw-blog/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/mdw-blog/js/jquery-3.6.4.min.js"></script>
+
+
+
+  
+<script src="/mdw-blog/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/mdw-blog/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>

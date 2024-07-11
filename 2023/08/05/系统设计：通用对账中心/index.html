@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>系统设计：通用对账中心 | 剑出</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="业务背景 交易支付对账：需要将商户与支付平台间对账自动化，确保商户信息流、支付平台资金链的一致性。 业务对账：需要将上下游业务系统间的对账自动化，确保业务数据一致性，提前发现问题，提高用户体验。 数据对账：系统重构后数据双写、数据迁移等场景间的数据对账自动化，确保双写一致性。  目标□ 业务层面：  实现对账、差错处理的的自动化、工具化，即可能的减少人工介入。 可以便捷的获取需要核对的原始数据，如">
+<meta property="og:type" content="article">
+<meta property="og:title" content="系统设计：通用对账中心">
+<meta property="og:url" content="http://example.com/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/index.html">
+<meta property="og:site_name" content="剑出">
+<meta property="og:description" content="业务背景 交易支付对账：需要将商户与支付平台间对账自动化，确保商户信息流、支付平台资金链的一致性。 业务对账：需要将上下游业务系统间的对账自动化，确保业务数据一致性，提前发现问题，提高用户体验。 数据对账：系统重构后数据双写、数据迁移等场景间的数据对账自动化，确保双写一致性。  目标□ 业务层面：  实现对账、差错处理的的自动化、工具化，即可能的减少人工介入。 可以便捷的获取需要核对的原始数据，如">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-09-20_09-52-48.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-09-20_10-22-21.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-12_17-55-07.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-57-57.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-21_18-25-52.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-21_18-26-47.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-21_18-27-05.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-16-21.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_15-23-34.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-14-24.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-21_16-45-00.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_15-26-28.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-11-46.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_15-28-21.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-19-11.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-21_17-02-48.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-27-11.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-21_17-05-15.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-08-08.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-10-40.png">
+<meta property="og:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_16-45-42.png">
+<meta property="article:published_time" content="2023-08-05T11:45:34.000Z">
+<meta property="article:modified_time" content="2024-07-11T03:19:07.759Z">
+<meta property="article:author" content="XiaoMaDing">
+<meta property="article:tag" content="通用对账中心">
+<meta property="article:tag" content="QLExpress">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-09-20_09-52-48.png">
+  
+    <link rel="alternate" href="/mdw-blog/atom.xml" title="剑出" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/mdw-blog/favicon.png">
+  
+  
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-source-code-pro@0.0.71/index.min.css">
+
+  
+  
+<link rel="stylesheet" href="/mdw-blog/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/mdw-blog/fancybox/jquery.fancybox.min.css">
+
+  
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/mdw-blog/" id="logo">剑出</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/mdw-blog/" id="subtitle">&lt;p&gt;苟有恒,何必三更起五更眠&lt;/p&gt;&lt;p&gt;最无益,莫过一日曝十日寒&lt;/p&gt;</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"><span class="fa fa-bars"></span></a>
+        
+          <a class="main-nav-link" href="/mdw-blog/">Home</a>
+        
+          <a class="main-nav-link" href="/mdw-blog/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+        
+          <a class="nav-icon" href="/mdw-blog/atom.xml" title="RSS 订阅"><span class="fa fa-rss"></span></a>
+        
+        <a class="nav-icon nav-search-btn" title="搜索"><span class="fa fa-search"></span></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="搜索"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-系统设计：通用对账中心" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/" class="article-date">
+  <time class="dt-published" datetime="2023-08-05T11:45:34.000Z" itemprop="datePublished">2023-08-05</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/mdw-blog/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/">系统设计</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      系统设计：通用对账中心
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h1 id="业务背景"><a href="#业务背景" class="headerlink" title="业务背景"></a>业务背景</h1><ul>
+<li>交易支付对账：需要将商户与支付平台间对账自动化，确保商户信息流、支付平台资金链的一致性。</li>
+<li>业务对账：需要将上下游业务系统间的对账自动化，确保业务数据一致性，提前发现问题，提高用户体验。</li>
+<li>数据对账：系统重构后数据双写、数据迁移等场景间的数据对账自动化，确保双写一致性。</li>
+</ul>
+<h1 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h1><p>□ 业务层面：</p>
+<ul>
+<li>实现对账、差错处理的的自动化、工具化，即可能的减少人工介入。</li>
+<li>可以便捷的获取需要核对的原始数据，如平台数据、三方数据</li>
+<li>可以灵活配置清洗、过滤、核对规则</li>
+<li>可以查看核对的结果，可以对差异进行追踪管理、处理，可以对外提供核对结果</li>
+</ul>
+<p>□ 技术层面：</p>
+<ul>
+<li>具备通用对账能力，可适应多种对账场景</li>
+<li>业务方能快速接入</li>
+<li>可以应对大数据量的对账</li>
+<li>具有较强的扩展能力</li>
+</ul>
+<h1 id="调研"><a href="#调研" class="headerlink" title="调研"></a>调研</h1><figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 陈元宇宙：对账系统从入门到精通 (基于产品视角)</span></span><br><span class="line"><span class="attr">http</span>:<span class="string">//paypm.cn/h-nd-81.html#_np=2_1268</span></span><br><span class="line"><span class="comment">#  卡拉云：如何设计财务对账系统 —— 从0到1搭建对账中心实战 (标准化入库还是没说，标准账单字段)</span></span><br><span class="line"><span class="attr">https</span>:<span class="string">//blog.csdn.net/weixin_48201324/article/details/118805747</span></span><br><span class="line"><span class="comment"># 有赞业务对账平台的探索与实践 (整体架构比较好，抽象了4个步骤的接口，采用SPI，无细节)</span></span><br><span class="line"><span class="attr">https</span>:<span class="string">//tech.youzan.com/practice-of-business-check-platform-in-youzan/</span></span><br><span class="line"><span class="comment"># 美团配送资金安全治理之对账体系建设 (比较全面，但是没有落地细节)</span></span><br><span class="line"><span class="attr">https</span>:<span class="string">//tech.meituan.com/2018/03/21/balance-accounts.html</span></span><br><span class="line"><span class="comment"># 支付对账系统怎么设计 (基于数据库的核对对账逻辑demo)</span></span><br><span class="line"><span class="attr">https</span>:<span class="string">//mp.weixin.qq.com/s/SOpwMsVB5wNkwMZdKKMkwg</span></span><br><span class="line"><span class="comment"># 苏宁基于 Apache Ignite 日均十亿数据对账实践应用 (分布式内存计算，无细节)</span></span><br><span class="line"><span class="attr">https</span>:<span class="string">//www.sohu.com/a/274723469_804130</span></span><br></pre></td></tr></table></figure>
+
+<p>市面上对于对账中心的架构设计文章是比较多的，但是具体怎么落地，很多细节还是很欠缺。</p>
+<p>笔者的目标是根据调研结果，设计一个符合本公司业务及体量的通用对账系统，并且落地实现。</p>
+<h1 id="难题"><a href="#难题" class="headerlink" title="难题"></a>难题</h1><p>1、对账数据源格式不一，怎么标准化存储？</p>
+<p>既然格式不一，那就不标准化，直接存储CSV文件；然后配置字段名、核对键等元数据，使用时，根据元数据配置，解析为Map，在核对引擎中去做具体的核对处理。</p>
+<p>2、如何根据配置，进行灵活的数据清洗、过滤、核对？</p>
+<p>需要利用规则引擎，经过调研，选择了阿里的QLExpress，在页面上配置规则，生成对应的规则表达式，通过规则引擎执行计算</p>
+<p>3、怎么进行双方数据源的核对？</p>
+<p>见核对引擎-核对内核</p>
+<p>4、如果对账数据源太大，怎么处理？</p>
+<p>需要支持多种核对引擎</p>
+<p>5、对账结果数据如何存储？如何应对数据量的日益增加？</p>
+<p>由于需要在页面展示，所以存储选择存储在Mysql，后期进行分表处理</p>
+<p>6、跨天导致的单边，如何处理？</p>
+<p>需要支持跨对账周期，循环对账</p>
+<h1 id="架构设计"><a href="#架构设计" class="headerlink" title="架构设计"></a>架构设计</h1><h2 id="业务架构"><a href="#业务架构" class="headerlink" title="业务架构"></a>业务架构</h2><img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-09-20_09-52-48.png" alt="1">
+
+
+
+<h2 id="数据架构"><a href="#数据架构" class="headerlink" title="数据架构"></a>数据架构</h2><img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-09-20_10-22-21.png" alt="1">
+
+<h1 id="组件及流程设计"><a href="#组件及流程设计" class="headerlink" title="组件及流程设计"></a>组件及流程设计</h1><img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-12_17-55-07.png" alt="1">
+
+<h2 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h2><p>主要负责对账场景的各种元数据配置。</p>
+<p>1、对账场景配置：</p>
+<img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-57-57.png" alt="1" style="zoom: 67%;">  
+
+<p>2、清洗规则：</p>
+<img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-21_18-25-52.png" alt="1" style="zoom: 67%;"> 
+
+<p>3、核对规则：</p>
+<img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-21_18-26-47.png" alt="1" style="zoom:70%;">  
+
+<p>4、展示内容：</p>
+<img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-21_18-27-05.png" alt="1">  
+
+
+
+<h2 id="数据接入"><a href="#数据接入" class="headerlink" title="数据接入"></a>数据接入</h2><img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-16-21.png" alt="1" style="zoom:80%;"> 
+
+<p>职责：负责从业务方获取对账数据源，并解析为CSV文件，调用存储引擎进行存储</p>
+<p>设计与实现实现：支持多种接入方式，目前系统实现了以下数据拉取方式</p>
+<ul>
+<li>SQL：主要用于内部业务系统，前期快速接入，后期建议接入接口，推拉账单</li>
+<li>HTTP：使用HTTP进行远程通信，通过约定的格式对业务方对账源数据，进行拉取</li>
+<li>微信、支付宝等：拉取三方支付平台等外部系统的账单，one by one的接入</li>
+<li>MQ：如果是准实时对账，那就需要感知业务，监听业务方的MQ，然后做对应的处理 （可参考美团-对账系统）</li>
+</ul>
+<p>接口：</p>
+<img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_15-23-34.png" alt="1" style="zoom:70%;">   
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 数据拉取器：从对账方的数据源中拉取数据</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">DataPuller</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 拉取对账数据源指定日期的源数据</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> billMetaData</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">pull</span><span class="params">(BillMetaData billMetaData)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="存储引擎"><a href="#存储引擎" class="headerlink" title="存储引擎"></a>存储引擎</h2><img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-14-24.png" alt="1" style="zoom:80%;"> 
+
+<p>职责：对账源数据的存储、提取</p>
+<p>设计与实现：在接口设计上，支持多种存储方式，目前采用的是SFTP服务器</p>
+<p>示例：</p>
+<img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-21_16-45-00.png" alt="1" style="zoom:80%;">  
+
+<p>接口：</p>
+<img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_15-26-28.png" alt="1" style="zoom:80%;">  
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 数据存储器：保存从DataPuller拉取到的原始账单</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">DataSaver</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">saveBill</span><span class="params">(BillMetaData billMetaData)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">loadBill</span><span class="params">(BillMetaData billMetaData)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="对账执行"><a href="#对账执行" class="headerlink" title="对账执行"></a>对账执行</h2><img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-11-46.png" alt="1" style="zoom:80%;">  
+
+<h3 id="解析器"><a href="#解析器" class="headerlink" title="解析器"></a>解析器</h3><p>职责：将从存储引擎中取出的CSV文件，解析为Java内存中的标准的数据结构，用于后续流程操作</p>
+<p>接口：</p>
+<img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_15-28-21.png" alt="1" style="zoom:80%;">  
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 数据解析器：</span></span><br><span class="line"><span class="comment"> * 将从Saver中加载的数据，解析成统一的对账数据结构：List&lt;Map&lt;String, String&gt;&gt;</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">DataParser</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 将对账文件解析为对账标准数据结构</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> tempBillFile</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    List&lt;Map&lt;String, String&gt;&gt; <span class="title function_">parse</span><span class="params">(File tempBillFile)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 部分解析，用于数据量大的账单，分页解析</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> tempBillFile</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> startIndex</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> endIndex</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    List&lt;Map&lt;String, String&gt;&gt; <span class="title function_">parse</span><span class="params">(File tempBillFile, </span></span><br><span class="line"><span class="params">                                    Integer startIndex, Integer endIndex)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="清洗器"><a href="#清洗器" class="headerlink" title="清洗器"></a>清洗器</h3><p>职责：根据对账任务配置的清洗规则，对数据进行清洗、过滤、数据类型转换、汇总等操作  </p>
+<p>接口：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 数据清洗器：将Parser解析后的数据，根据配置的规则进行分组、过滤、类型转换等处理</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">DataCleaner</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 清洗</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> taskDataSourceConfig</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> result</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    List&lt;Map&lt;String, Object&gt;&gt; <span class="title function_">clean</span><span class="params">(TaskDataSourceConfig taskDataSourceConfig, </span></span><br><span class="line"><span class="params">                                    List&lt;Map&lt;String, String&gt;&gt; result)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h3 id="核对引擎"><a href="#核对引擎" class="headerlink" title="核对引擎"></a>核对引擎</h3><img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-19-11.png" alt="1"> 
+
+<p>职责：对清洗完成后的双方数据源，根据配置的核对规则，进行核对  </p>
+<p>设计与实现：支持多种核对引擎，可动态切换，目前系统实现了以下核对引擎</p>
+<ul>
+<li>内存：因为目前我司采用D+1对账模式，现有的对账场景业务数据量并不大，所以在内存中直接核对，是最方便、效率最高的方式</li>
+<li>Redis：如果数据量超过阈值，再使用内存核对，可能造成服务OOM，所以实现了基于Redis的核对引擎，用于大数据量的核对场景</li>
+</ul>
+<img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-21_17-02-48.png" alt="1">
+
+<p>接口：</p>
+<img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-27-11.png" alt="1" style="zoom:80%;"> 
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 核对引擎</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">CheckEngine</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 执行对账逻辑</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> task</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">check</span><span class="params">(Task task)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 核对引擎类型</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    DataCheckEngineEnum <span class="title function_">getCheckEngineEnum</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h4 id="对账内核"><a href="#对账内核" class="headerlink" title="对账内核"></a>对账内核</h4><p>那具体怎么核对尼？其实原理很简单，如下图：</p>
+<img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-21_17-05-15.png" alt="1" style="zoom:80%;">   
+
+<p>核心代码：无论哪种核对引擎，对账的核心逻辑都是类似的</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">  * 核对引擎内核</span></span><br><span class="line"><span class="comment">  *</span></span><br><span class="line"><span class="comment">  * <span class="doctag">@param</span> task</span></span><br><span class="line"><span class="comment">  * <span class="doctag">@param</span> taskCheckRuleConfig</span></span><br><span class="line"><span class="comment">  * <span class="doctag">@param</span> leftDataList</span></span><br><span class="line"><span class="comment">  * <span class="doctag">@param</span> rightDataList</span></span><br><span class="line"><span class="comment">  * <span class="doctag">@throws</span> Exception</span></span><br><span class="line"><span class="comment">  */</span></span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">doCheck</span><span class="params">(Task task,</span></span><br><span class="line"><span class="params">                       TaskCheckRuleConfig taskCheckRuleConfig,</span></span><br><span class="line"><span class="params">                       List&lt;Map&lt;String, Object&gt;&gt; leftDataList,</span></span><br><span class="line"><span class="params">                       List&lt;Map&lt;String, Object&gt;&gt; rightDataList)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="type">TaskRunLog</span> <span class="variable">taskRunLog</span> <span class="operator">=</span> task.getTaskRunLog();</span><br><span class="line"></span><br><span class="line">    List&lt;String&gt; leftShowFields = task.getLeftShowFields();</span><br><span class="line">    List&lt;String&gt; rightShowFields = task.getRightShowFields();</span><br><span class="line"></span><br><span class="line">    <span class="type">TaskDataSourceConfig</span> <span class="variable">leftTaskDataSourceConfig</span> <span class="operator">=</span> task.getLeftTaskDataSourceConfig();</span><br><span class="line">    <span class="type">TaskDataSourceConfig</span> <span class="variable">rightTaskDataSourceConfig</span> <span class="operator">=</span> task.getRightTaskDataSourceConfig();</span><br><span class="line"></span><br><span class="line">    <span class="type">String</span> <span class="variable">leftCheckKey</span> <span class="operator">=</span> leftTaskDataSourceConfig.getCheckKey();</span><br><span class="line">    <span class="type">String</span> <span class="variable">rightCheckKey</span> <span class="operator">=</span> rightTaskDataSourceConfig.getCheckKey();</span><br><span class="line"></span><br><span class="line">    <span class="type">String</span> <span class="variable">checkRuleExpression</span> <span class="operator">=</span> taskCheckRuleConfig.getCheckRuleExpression();</span><br><span class="line">    log.info(<span class="string">&quot;[执行对账]taskId：&#123;&#125;,checkRuleExpression：&#123;&#125;&quot;</span>, task.getId(), checkRuleExpression);</span><br><span class="line">    AssertUtil.notBlank(checkRuleExpression, <span class="string">&quot;[执行对账]checkRuleExpression为空,taskCheckRuleConfigId：&quot;</span> + taskCheckRuleConfig.getId());</span><br><span class="line"></span><br><span class="line">    <span class="type">int</span> <span class="variable">equalNum</span> <span class="operator">=</span> taskRunLog.getEqualNum();</span><br><span class="line">    <span class="type">int</span> <span class="variable">wrongNum</span> <span class="operator">=</span> taskRunLog.getWrongNum();</span><br><span class="line">    <span class="type">int</span> <span class="variable">leftMoreNum</span> <span class="operator">=</span> taskRunLog.getLeftMoreNum();</span><br><span class="line">    <span class="comment">// 可以优化一下：若右方数据是空的，则左边全为多帐</span></span><br><span class="line">    Map&lt;Object, List&lt;Map&lt;String, Object&gt;&gt;&gt; rightDataMap = rightDataList.stream().collect(Collectors.groupingBy(o -&gt; o.get(rightCheckKey)));</span><br><span class="line">    <span class="keyword">for</span> (Map&lt;String, Object&gt; leftData : leftDataList) &#123;</span><br><span class="line">        <span class="type">Object</span> <span class="variable">checkKeyValue</span> <span class="operator">=</span> leftData.get(leftCheckKey);</span><br><span class="line">        <span class="type">String</span> <span class="variable">leftShowData</span> <span class="operator">=</span> getShowData(leftData, leftShowFields);</span><br><span class="line"></span><br><span class="line">        List&lt;Map&lt;String, Object&gt;&gt; rightValueList = rightDataMap.get(checkKeyValue);</span><br><span class="line">        <span class="keyword">if</span> (!CollectionUtils.isEmpty(rightValueList)) &#123;</span><br><span class="line">            <span class="comment">// 因为前面的步骤，已经根据groupModel进行处理了，所以这里不用再考虑1个核对key，多行记录的情况</span></span><br><span class="line">            Map&lt;String, Object&gt; rightData = rightValueList.get(<span class="number">0</span>);</span><br><span class="line">            <span class="type">String</span> <span class="variable">rightShowData</span> <span class="operator">=</span> getShowData(rightData, rightShowFields);</span><br><span class="line">            </span><br><span class="line">            <span class="comment">// 执行规则表达式</span></span><br><span class="line">            DefaultContext&lt;String, Object&gt; context = QlExpress.newContext();</span><br><span class="line">            context.put(CheckPartEnum.LEFT.getType(), leftData);</span><br><span class="line">            context.put(CheckPartEnum.RIGHT.getType(), rightData);</span><br><span class="line">            <span class="type">Boolean</span> <span class="variable">checkResult</span> <span class="operator">=</span> (Boolean) QlExpress.runner.execute(checkRuleExpression, context, <span class="literal">null</span>, <span class="literal">true</span>, <span class="literal">true</span>);</span><br><span class="line">            <span class="keyword">if</span> (BooleanUtils.isTrue(checkResult)) &#123;</span><br><span class="line">                <span class="comment">// 平账</span></span><br><span class="line">                equalNum++;</span><br><span class="line">                taskRunLog.createEqualDetail(checkKeyValue.toString(), leftShowData, rightShowData);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// 错账</span></span><br><span class="line">                wrongNum++;</span><br><span class="line">                taskRunLog.createWrongDetail(checkKeyValue.toString(), leftShowData, rightShowData);</span><br><span class="line">            &#125;</span><br><span class="line">            rightData.put(DEAL_FLAG, <span class="literal">true</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// left多帐</span></span><br><span class="line">            leftMoreNum++;</span><br><span class="line">            taskRunLog.createLeftMoreDetail(checkKeyValue.toString(), leftShowData, JSON.toJSONString(leftData));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    taskRunLog.setEqualNum(equalNum)</span><br><span class="line">        .setWrongNum(wrongNum)</span><br><span class="line">        .setLeftMoreNum(leftMoreNum);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="差错处理器"><a href="#差错处理器" class="headerlink" title="差错处理器"></a>差错处理器</h2><p>职责：把对账结果非平账的数据，进行二次核对，如果仍然有错误，做对应的处理</p>
+<ul>
+<li>二次核对：主要是处理日切的数据，因为按照D+1进行对账，可能存在双方的数据跨天</li>
+<li>差错处理：主要是告警</li>
+</ul>
+<h2 id="结果展示"><a href="#结果展示" class="headerlink" title="结果展示"></a>结果展示</h2><img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-08-08.png" alt="1" style="zoom:80%;"> 
+
+<p><b></b></p>
+<img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_14-10-40.png" alt="1" style="zoom:75%;"> 
+
+<p><b></b></p>
+<img src="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/Snipaste_2023-12-22_16-45-42.png" alt="1" style="zoom:75%;">  
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/" data-id="clygytc8h00076wvb9glkha46" data-title="系统设计：通用对账中心" class="article-share-link"><span class="fa fa-share">分享</span></a>
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/mdw-blog/tags/QLExpress/" rel="tag">QLExpress</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/mdw-blog/tags/%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/" rel="tag">通用对账中心</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">后一篇</strong>
+      <div class="article-nav-title">生产事故：事务与锁</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E5%BC%80%E5%8F%91/">开发</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E5%BC%82%E5%B8%B8%E5%AE%9A%E4%BD%8D/">异常定位</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85/">生产事故</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E7%94%9F%E4%BA%A7%E5%AE%9E%E8%B7%B5/">生产实践</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/">系统设计</a></li><li class="category-list-item"><a class="category-list-link" href="/mdw-blog/categories/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98/">项目实战</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Excel/" rel="tag">Excel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Feign/" rel="tag">Feign</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Hystrix/" rel="tag">Hystrix</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/MAT/" rel="tag">MAT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/OOM/" rel="tag">OOM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/QLExpress/" rel="tag">QLExpress</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Redis-Geo/" rel="tag">Redis-Geo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/RockeMQ/" rel="tag">RockeMQ</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/Semaphore/" rel="tag">Semaphore</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/SpringBoot-Starter/" rel="tag">SpringBoot Starter</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/SpringCloud/" rel="tag">SpringCloud</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/ThreadLocal/" rel="tag">ThreadLocal</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/xxl-job/" rel="tag">xxl-job</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E4%BA%8B%E5%8A%A1/" rel="tag">事务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E4%BB%BB%E5%8A%A1%E5%8A%A8%E6%80%81%E7%AE%A1%E7%90%86/" rel="tag">任务动态管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" rel="tag">分布式锁</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E5%8F%8D%E5%B0%84/" rel="tag">反射</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E5%8F%91%E5%B8%83%E6%B8%85%E5%8D%95/" rel="tag">发布清单</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E6%8A%80%E6%9C%AF%E6%96%B9%E6%A1%88/" rel="tag">技术方案</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81/" rel="tag">消息发送</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E7%94%9F%E4%BA%A7%E4%BA%8B%E5%8A%A1/" rel="tag">生产事务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/" rel="tag">策略模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E7%BA%BF%E7%A8%8B%E6%B1%A0/" rel="tag">线程池</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" rel="tag">设计模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F/" rel="tag">责任链模式</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91/" rel="tag">软件开发</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/" rel="tag">通用对账中心</a></li><li class="tag-list-item"><a class="tag-list-link" href="/mdw-blog/tags/%E9%9C%80%E6%B1%82%E5%88%86%E6%9E%90/" rel="tag">需求分析</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/mdw-blog/tags/Excel/" style="font-size: 10px;">Excel</a> <a href="/mdw-blog/tags/Feign/" style="font-size: 10px;">Feign</a> <a href="/mdw-blog/tags/Hystrix/" style="font-size: 20px;">Hystrix</a> <a href="/mdw-blog/tags/MAT/" style="font-size: 10px;">MAT</a> <a href="/mdw-blog/tags/OOM/" style="font-size: 10px;">OOM</a> <a href="/mdw-blog/tags/QLExpress/" style="font-size: 10px;">QLExpress</a> <a href="/mdw-blog/tags/Redis-Geo/" style="font-size: 10px;">Redis-Geo</a> <a href="/mdw-blog/tags/RockeMQ/" style="font-size: 10px;">RockeMQ</a> <a href="/mdw-blog/tags/Semaphore/" style="font-size: 20px;">Semaphore</a> <a href="/mdw-blog/tags/SpringBoot-Starter/" style="font-size: 10px;">SpringBoot Starter</a> <a href="/mdw-blog/tags/SpringCloud/" style="font-size: 10px;">SpringCloud</a> <a href="/mdw-blog/tags/ThreadLocal/" style="font-size: 10px;">ThreadLocal</a> <a href="/mdw-blog/tags/xxl-job/" style="font-size: 10px;">xxl-job</a> <a href="/mdw-blog/tags/%E4%BA%8B%E5%8A%A1/" style="font-size: 10px;">事务</a> <a href="/mdw-blog/tags/%E4%BB%BB%E5%8A%A1%E5%8A%A8%E6%80%81%E7%AE%A1%E7%90%86/" style="font-size: 10px;">任务动态管理</a> <a href="/mdw-blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" style="font-size: 10px;">分布式锁</a> <a href="/mdw-blog/tags/%E5%8F%8D%E5%B0%84/" style="font-size: 10px;">反射</a> <a href="/mdw-blog/tags/%E5%8F%91%E5%B8%83%E6%B8%85%E5%8D%95/" style="font-size: 10px;">发布清单</a> <a href="/mdw-blog/tags/%E6%8A%80%E6%9C%AF%E6%96%B9%E6%A1%88/" style="font-size: 10px;">技术方案</a> <a href="/mdw-blog/tags/%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81/" style="font-size: 10px;">消息发送</a> <a href="/mdw-blog/tags/%E7%94%9F%E4%BA%A7%E4%BA%8B%E5%8A%A1/" style="font-size: 10px;">生产事务</a> <a href="/mdw-blog/tags/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">策略模式</a> <a href="/mdw-blog/tags/%E7%BA%BF%E7%A8%8B%E6%B1%A0/" style="font-size: 10px;">线程池</a> <a href="/mdw-blog/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">设计模式</a> <a href="/mdw-blog/tags/%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">责任链模式</a> <a href="/mdw-blog/tags/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91/" style="font-size: 20px;">软件开发</a> <a href="/mdw-blog/tags/%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/" style="font-size: 10px;">通用对账中心</a> <a href="/mdw-blog/tags/%E9%9C%80%E6%B1%82%E5%88%86%E6%9E%90/" style="font-size: 10px;">需求分析</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/08/">八月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/07/">七月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/05/">五月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/04/">四月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/03/">三月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/02/">二月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2023/01/">一月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2022/07/">七月 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/mdw-blog/archives/2022/05/">五月 2022</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/mdw-blog/2023/08/05/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%EF%BC%9A%E9%80%9A%E7%94%A8%E5%AF%B9%E8%B4%A6%E4%B8%AD%E5%BF%83/">系统设计：通用对账中心</a>
+          </li>
+        
+          <li>
+            <a href="/mdw-blog/2023/07/20/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9A%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/">生产事故：事务与锁</a>
+          </li>
+        
+          <li>
+            <a href="/mdw-blog/2023/07/01/%E7%94%9F%E4%BA%A7%E4%BA%8B%E6%95%85%EF%BC%9ARocketMQ%E6%B6%88%E6%81%AF%E4%BD%93%E5%A4%A7%E5%B0%8F%E8%B6%85%E5%87%BA%E9%99%90%E5%88%B6/">生产事故：RocketMQ消息体大小超出限制</a>
+          </li>
+        
+          <li>
+            <a href="/mdw-blog/2023/05/22/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9A%E7%BA%BF%E7%A8%8B%E6%B1%A0%E5%8C%85%E8%A3%85%E4%B8%8E%E5%8F%82%E6%95%B0%E4%BC%A0%E9%80%92/">项目实战：线程池包装与参数传递</a>
+          </li>
+        
+          <li>
+            <a href="/mdw-blog/2023/05/01/%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98%EF%BC%9AExcel%E6%89%B9%E9%87%8F%E5%AF%BC%E5%85%A5%E4%B8%AD%E6%B6%89%E5%8F%8A%E7%9A%84%E6%8A%80%E6%9C%AF%E7%82%B9/">项目实战：Excel批量导入中涉及的技术点</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2024 XiaoMaDing<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/mdw-blog/" class="mobile-nav-link">Home</a>
+  
+    <a href="/mdw-blog/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/mdw-blog/js/jquery-3.6.4.min.js"></script>
+
+
+
+  
+<script src="/mdw-blog/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/mdw-blog/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>
