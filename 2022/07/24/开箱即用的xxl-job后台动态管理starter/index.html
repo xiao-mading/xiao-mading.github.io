@@ -19,11 +19,11 @@
     <meta name="description" content="背景由于最近要设计开发一个通用对账系统，不同的对账参与方的对账时间节点不一。 1234资金对账：  - 微信：可能是每天7点以后，才能下载前1天的对账单  - 通联：可能是每天8点以后，才能下载前1天的对账单业务对账：不同的业务动作，需灵活配置对账时间节点  所以决定采用了xxl-job来实现对账调度，但是存在1个问题，对账任务如何自动创建？ 不可能每接入一个对账业务方，都需要开发人员去xxl-j">
 <meta property="og:type" content="article">
 <meta property="og:title" content="开箱即用的Xxl-job后台动态管理Starter">
-<meta property="og:url" content="https://xiao-mading.github.io/2022/07/24/%E5%BC%80%E7%AE%B1%E5%8D%B3%E7%94%A8%E7%9A%84xxl-job%E5%90%8E%E5%8F%B0%E5%8A%A8%E6%80%81%E7%AE%A1%E7%90%86starter/index.html">
+<meta property="og:url" content="http://example.com/2022/07/24/%E5%BC%80%E7%AE%B1%E5%8D%B3%E7%94%A8%E7%9A%84xxl-job%E5%90%8E%E5%8F%B0%E5%8A%A8%E6%80%81%E7%AE%A1%E7%90%86starter/index.html">
 <meta property="og:site_name" content="剑出">
 <meta property="og:description" content="背景由于最近要设计开发一个通用对账系统，不同的对账参与方的对账时间节点不一。 1234资金对账：  - 微信：可能是每天7点以后，才能下载前1天的对账单  - 通联：可能是每天8点以后，才能下载前1天的对账单业务对账：不同的业务动作，需灵活配置对账时间节点  所以决定采用了xxl-job来实现对账调度，但是存在1个问题，对账任务如何自动创建？ 不可能每接入一个对账业务方，都需要开发人员去xxl-j">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://xiao-mading.github.io/index_img/XxlJob.png">
+<meta property="og:image" content="http://example.com/index_img/XxlJob.png">
 <meta property="article:published_time" content="2022-07-24T09:22:26.000Z">
 <meta property="article:modified_time" content="2024-07-11T03:19:07.732Z">
 <meta property="article:author" content="XiaoMaDing">
@@ -31,7 +31,7 @@
 <meta property="article:tag" content="任务动态管理">
 <meta property="article:tag" content="SpringBoot Starter">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://xiao-mading.github.io/index_img/XxlJob.png">
+<meta name="twitter:image" content="http://example.com/index_img/XxlJob.png">
   
   
   
@@ -75,7 +75,7 @@
   <script id="fluid-configs">
     var Fluid = window.Fluid || {};
     Fluid.ctx = Object.assign({}, Fluid.ctx)
-    var CONFIG = {"hostname":"xiao-mading.github.io","root":"/","version":"1.9.4","typing":{"enable":true,"typeSpeed":40,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"left","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":2},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+    var CONFIG = {"hostname":"example.com","root":"/","version":"1.9.4","typing":{"enable":true,"typeSpeed":40,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"left","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":2},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
 
     if (CONFIG.web_analytics.follow_dnt) {
       var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
@@ -382,7 +382,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>开箱即用的Xxl-job后台动态管理Starter</div>
-      <div>https://xiao-mading.github.io/2022/07/24/开箱即用的xxl-job后台动态管理starter/</div>
+      <div>http://example.com/2022/07/24/开箱即用的xxl-job后台动态管理starter/</div>
     </div>
     <div class="license-meta">
       
